@@ -140,22 +140,6 @@ status.Text = "Starting UI..."
 task.wait(0.25)
 loaderGui:Destroy()
 
-local GeneratedIcons = {
-	Window = MoreUI.Window11Asset("window"),
-	WindowSymbol = MoreUI.Window11Asset("window-symbol"),
-	Library = MoreUI.Window11Asset("library-symbol"),
-	Minimize = MoreUI.Window11Asset("minimize-symbol"),
-	Close = MoreUI.Window11Asset("close-symbol"),
-	Check = MoreUI.Window11Asset("check-symbol"),
-	X = MoreUI.Window11Asset("x-symbol"),
-	Plus = MoreUI.Window11Asset("plus-symbol"),
-	Minus = MoreUI.Window11Asset("minus-symbol"),
-	ToggleOn = MoreUI.Window11Asset("toggle-on"),
-	ToggleOff = MoreUI.Window11Asset("toggle-off"),
-	ToggleSwitchOn = MoreUI.Window11Asset("toggle-switch-on"),
-	ToggleSwitchOff = MoreUI.Window11Asset("toggle-switch-off"),
-}
-
 local window = MoreUI:CreateWindow({
 	Title = "More UI Library",
 	Subtitle = "Liquid Glass mobile demo",
@@ -165,49 +149,12 @@ local window = MoreUI:CreateWindow({
 	BackgroundBlurSize = 10,
 	ToggleKey = Enum.KeyCode.RightShift,
 	OpenButtonPosition = UDim2.fromOffset(92, 86),
-	OpenIcon = GeneratedIcons.Window,
-	LibraryIcon = GeneratedIcons.Library,
-	MinimizeIcon = GeneratedIcons.Minimize,
-	CloseIcon = GeneratedIcons.Close,
-	ToggleOnIcon = GeneratedIcons.Check,
-	ToggleOffIcon = GeneratedIcons.X,
-	ToggleOnImage = GeneratedIcons.ToggleSwitchOn,
-	ToggleOffImage = GeneratedIcons.ToggleSwitchOff,
-	StepperPlusIcon = GeneratedIcons.Plus,
-	StepperMinusIcon = GeneratedIcons.Minus,
+	SidebarCompact = true,
 	IconHubName = "More UI Library",
 	Window11Icons = true,
-	WindowBackgroundAsset = MoreUI.Window11Asset("window11-background"),
 	WindowBackgroundTransparency = 0.64,
-	ControlTextureAsset = MoreUI.Window11Asset("control-texture"),
 	ControlTextureTransparency = 0.84,
-	TextureAsset = MoreUI.Window11Asset("moreui-liquid-texture"),
-	TexturePath = "Assets/moreui-liquid-texture.png",
 	TextureTransparency = 0.72,
-	PreloadIcons = {
-		GeneratedIcons.Window,
-		GeneratedIcons.Library,
-		GeneratedIcons.Minimize,
-		GeneratedIcons.Close,
-		GeneratedIcons.Check,
-		GeneratedIcons.X,
-		GeneratedIcons.Plus,
-		GeneratedIcons.Minus,
-		GeneratedIcons.ToggleOn,
-		GeneratedIcons.ToggleOff,
-		GeneratedIcons.ToggleSwitchOn,
-		GeneratedIcons.ToggleSwitchOff,
-		"lucide:home",
-		"lucide:settings",
-		"lucide:crosshair",
-		"lucide:folder",
-		"lucide:palette",
-		"lucide:sparkles",
-		"lucide:minus",
-		"lucide:x",
-		"lucide:check",
-		"lucide:plus",
-	},
 	Dark = false,
 	User = {
 		Role = "Mobile Ready",
@@ -362,6 +309,7 @@ movement:AddStepper({
 local modes = player:AddGroupTabs({
 	Title = "GroupBox Tabs",
 	Icon = "lucide:folder",
+	IconOnly = true,
 })
 
 local normalTab = modes:AddTab({

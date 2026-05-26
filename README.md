@@ -27,24 +27,11 @@ local window = MoreUI:CreateWindow({
 	TopInset = 72,
 	BackgroundBlurSize = 10,
 	OpenButtonPosition = UDim2.fromOffset(92, 86),
-	OpenIcon = MoreUI.Window11Asset("window"),
-	LibraryIcon = MoreUI.Window11Asset("library-symbol"),
-	MinimizeIcon = MoreUI.Window11Asset("minimize-symbol"),
-	CloseIcon = MoreUI.Window11Asset("close-symbol"),
-	ToggleOnIcon = MoreUI.Window11Asset("check-symbol"),
-	ToggleOffIcon = MoreUI.Window11Asset("x-symbol"),
-	ToggleOnImage = MoreUI.Window11Asset("toggle-switch-on"),
-	ToggleOffImage = MoreUI.Window11Asset("toggle-switch-off"),
-	StepperPlusIcon = MoreUI.Window11Asset("plus-symbol"),
-	StepperMinusIcon = MoreUI.Window11Asset("minus-symbol"),
+	SidebarCompact = true,
 	IconHubName = "My Hub",
 	Window11Icons = true,
-	WindowBackgroundAsset = MoreUI.Window11Asset("window11-background"),
-	WindowBackgroundTransparency = 0.24,
-	ControlTextureAsset = MoreUI.Window11Asset("control-texture"),
+	WindowBackgroundTransparency = 0.64,
 	ControlTextureTransparency = 0.84,
-	TextureAsset = MoreUI.Window11Asset("moreui-liquid-texture"),
-	TexturePath = "Assets/moreui-liquid-texture.png",
 	TextureTransparency = 0.72,
 	Dark = false,
 	User = {
@@ -78,7 +65,8 @@ section:AddToggle({
 - Smaller default window and lighter corner radius.
 - `TopInset` keeps the UI below the Roblox topbar. Use `64-82` on mobile landscape; increase only if it touches the Roblox top menu.
 - Top-left open button defaults below the Roblox menu area and uses a Windows-style icon.
-- `LibraryIcon`, `OpenIcon`, `MinimizeIcon`, `CloseIcon`, `ToggleOnIcon`, `ToggleOffIcon`, `ToggleOnImage`, `ToggleOffImage`, `StepperPlusIcon`, and `StepperMinusIcon` can each use separate image assets.
+- `SidebarCompact = true` makes main tabs icon-only and gives more room to page content.
+- Window 11 generated icons are built in by default for `OpenIcon`, `LibraryIcon`, `MinimizeIcon`, `CloseIcon`, toggle icons/images, and stepper icons. Override any of them only when you need a custom asset.
 - `MoreUI.Window11Asset(name)` downloads generated UI assets from GitHub and caches them to `{IconHubName}/Asset/Window11/{name}.png` with `writefile`.
 - `BackgroundBlurSize` controls the Roblox `BlurEffect` while the window is open. Set `BackgroundBlur = false` or `Blur = false` to disable it.
 - Main tab switching uses a slide/scale transition with a liquid-glass blur overlay instead of fading every element.
@@ -106,6 +94,7 @@ MoreUI.Window11Asset("window")
 For generated Windows 11 PNGs hosted on GitHub, use:
 
 ```lua
+-- Optional overrides. These are already the defaults when Window11Icons is not false.
 OpenIcon = MoreUI.Window11Asset("window")
 LibraryIcon = MoreUI.Window11Asset("library-symbol")
 ControlTextureAsset = MoreUI.Window11Asset("control-texture")
@@ -197,7 +186,7 @@ end)
 - `AddSegmented({ Flag, Values, Default, Callback })`
 - `AddDivider()`
 - `AddGroupBox({ Title, Icon })`
-- `AddGroupTabs({ Title, Icon })`
+- `AddGroupTabs({ Title, Icon, IconOnly })`
 
 ## GroupBox Tabs
 
@@ -205,6 +194,7 @@ end)
 local groupTabs = section:AddGroupTabs({
 	Title = "Modes",
 	Icon = "lucide:folder",
+	IconOnly = true,
 })
 
 local normal = groupTabs:AddTab({

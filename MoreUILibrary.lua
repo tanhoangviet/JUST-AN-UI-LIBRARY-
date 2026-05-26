@@ -47,6 +47,44 @@ MoreUI.Window11Icons = {
 	target = "w11-target",
 	user = "w11-user",
 }
+MoreUI.Window11Defaults = {
+	OpenIcon = { Window11 = "window", PreserveColor = true },
+	LibraryIcon = { Window11 = "library-symbol", PreserveColor = true },
+	MinimizeIcon = { Window11 = "minimize-symbol", PreserveColor = true },
+	CloseIcon = { Window11 = "close-symbol", PreserveColor = true },
+	ToggleOnIcon = { Window11 = "check-symbol", PreserveColor = true },
+	ToggleOffIcon = { Window11 = "x-symbol", PreserveColor = true },
+	ToggleOnImage = { Window11 = "toggle-switch-on", PreserveColor = true },
+	ToggleOffImage = { Window11 = "toggle-switch-off", PreserveColor = true },
+	StepperPlusIcon = { Window11 = "plus-symbol", PreserveColor = true },
+	StepperMinusIcon = { Window11 = "minus-symbol", PreserveColor = true },
+}
+MoreUI.Window11DefaultPreload = {
+	MoreUI.Window11Defaults.OpenIcon,
+	MoreUI.Window11Defaults.LibraryIcon,
+	MoreUI.Window11Defaults.MinimizeIcon,
+	MoreUI.Window11Defaults.CloseIcon,
+	MoreUI.Window11Defaults.ToggleOnIcon,
+	MoreUI.Window11Defaults.ToggleOffIcon,
+	MoreUI.Window11Defaults.ToggleOnImage,
+	MoreUI.Window11Defaults.ToggleOffImage,
+	MoreUI.Window11Defaults.StepperPlusIcon,
+	MoreUI.Window11Defaults.StepperMinusIcon,
+	{ Window11 = "toggle-on" },
+	{ Window11 = "toggle-off" },
+	"lucide:home",
+	"lucide:settings",
+	"lucide:user",
+	"lucide:bell",
+	"lucide:folder",
+	"lucide:save",
+	"lucide:search",
+	"lucide:palette",
+	"lucide:sliders-horizontal",
+	"lucide:crosshair",
+	"lucide:swords",
+	"lucide:sparkles",
+}
 
 local Theme = {
 	Background = Color3.fromRGB(244, 246, 250),
@@ -153,6 +191,16 @@ local function mergeMap(base, overrides)
 		out[key] = value
 	end
 	return out
+end
+
+local function defaultWindow11Option(options, key, fallback)
+	if options and options[key] ~= nil then
+		return options[key]
+	end
+	if options and (options.Window11Defaults == false or options.Window11Icons == false) then
+		return fallback
+	end
+	return MoreUI.Window11Defaults[key] or fallback
 end
 
 local function tween(instance, info, props)
@@ -1127,6 +1175,7 @@ function MoreUI:CreateWindow(options)
 	library.Elements = {}
 	library.Tabs = {}
 	library.SelectedTab = nil
+	library.SidebarCompact = options.SidebarCompact == true or options.CompactSidebar == true
 	library.Open = options.Open ~= false
 	library.ScreenGui = nil
 	library._connections = {}
@@ -1173,32 +1222,26 @@ function MoreUI:CreateWindow(options)
 	library.NotificationLayer = notificationLayer
 
 	local iconsToPreload = {
-		options.OpenIcon or "lucide:panel-top",
-		options.LibraryIcon or "lucide:panel-top",
-		options.MinimizeIcon or "lucide:minus",
-		options.CloseIcon or "lucide:x",
-		options.ToggleOnIcon or "lucide:check",
-		options.ToggleOffIcon or "lucide:x",
-		options.StepperPlusIcon or "lucide:plus",
-		options.StepperMinusIcon or "lucide:minus",
-		"lucide:home",
-		"lucide:settings",
-		"lucide:user",
-		"lucide:bell",
-		"lucide:folder",
-		"lucide:save",
-		"lucide:search",
-		"lucide:palette",
-		"lucide:sliders-horizontal",
-		"lucide:crosshair",
-		"lucide:swords",
+		defaultWindow11Option(options, "OpenIcon", "lucide:panel-top"),
+		defaultWindow11Option(options, "LibraryIcon", "lucide:panel-top"),
+		defaultWindow11Option(options, "MinimizeIcon", "lucide:minus"),
+		defaultWindow11Option(options, "CloseIcon", "lucide:x"),
+		defaultWindow11Option(options, "ToggleOnIcon", "lucide:check"),
+		defaultWindow11Option(options, "ToggleOffIcon", "lucide:x"),
+		defaultWindow11Option(options, "StepperPlusIcon", "lucide:plus"),
+		defaultWindow11Option(options, "StepperMinusIcon", "lucide:minus"),
 	}
 	for _, asset in ipairs({
-		options.ToggleOnImage or options.ToggleOnAsset,
-		options.ToggleOffImage or options.ToggleOffAsset,
+		defaultWindow11Option(options, "ToggleOnImage", options.ToggleOnAsset),
+		defaultWindow11Option(options, "ToggleOffImage", options.ToggleOffAsset),
 	}) do
 		if asset then
 			table.insert(iconsToPreload, asset)
+		end
+	end
+	if options.Window11Defaults ~= false and options.Window11Icons ~= false then
+		for _, icon in ipairs(MoreUI.Window11DefaultPreload) do
+			table.insert(iconsToPreload, icon)
 		end
 	end
 	for _, icon in ipairs(options.PreloadIcons or {}) do
@@ -1225,26 +1268,18 @@ function MoreUI:CreateWindow(options)
 		Radius = 14,
 		TextureTransparency = 0.9,
 	})
-	local openIconName = options.OpenIcon or "lucide:panel-top"
-	if options.OpenIcon == nil or options.OpenIcon == "window" or options.OpenIcon == "windows" then
-		createWindowLogo({
-			Parent = openButton,
-			Position = UDim2.fromScale(0.5, 0.5),
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Size = UDim2.fromOffset(23, 23),
-			Color = Color3.fromRGB(116, 226, 255),
-			ZIndex = 81,
-		})
-	else
-		createIcon(library, openIconName, {
-			Parent = openButton,
-			Position = UDim2.fromScale(0.5, 0.5),
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Size = UDim2.fromOffset(24, 24),
-			Color = Color3.fromRGB(255, 255, 255),
-			ZIndex = 81,
-		})
+	local openIconName = defaultWindow11Option(options, "OpenIcon", "lucide:panel-top")
+	if options.OpenIcon == "window" or options.OpenIcon == "windows" then
+		openIconName = MoreUI.Window11Defaults.OpenIcon
 	end
+	createIcon(library, openIconName, {
+		Parent = openButton,
+		Position = UDim2.fromScale(0.5, 0.5),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Size = UDim2.fromOffset(24, 24),
+		Color = Color3.fromRGB(255, 255, 255),
+		ZIndex = 81,
+	})
 	addButtonMotion(openButton, Color3.fromRGB(22, 24, 29), Color3.fromRGB(35, 38, 45), Color3.fromRGB(8, 9, 12))
 	library.OpenButton = openButton
 
@@ -1426,9 +1461,10 @@ function MoreUI:CreateWindow(options)
 	})
 	library.Topbar = topbar
 
-	local titleOffset = options.LibraryIcon and 48 or 18
-	if options.LibraryIcon then
-		if options.LibraryIcon == "window" or options.LibraryIcon == "windows" then
+	local libraryIcon = defaultWindow11Option(options, "LibraryIcon", nil)
+	local titleOffset = libraryIcon and 48 or 18
+	if libraryIcon then
+		if libraryIcon == "window" or libraryIcon == "windows" then
 			createWindowLogo({
 				Parent = topbar,
 				Position = UDim2.fromOffset(18, 18),
@@ -1437,7 +1473,7 @@ function MoreUI:CreateWindow(options)
 				ZIndex = 5,
 			})
 		else
-			createIcon(library, options.LibraryIcon, {
+			createIcon(library, libraryIcon, {
 				Parent = topbar,
 				Position = UDim2.fromOffset(18, 18),
 				Size = UDim2.fromOffset(22, 22),
@@ -1563,7 +1599,7 @@ function MoreUI:CreateWindow(options)
 		Radius = 2,
 		TextureTransparency = 0.92,
 	})
-	local minimizeIcon = createIcon(library, options.MinimizeIcon or "lucide:minus", {
+	local minimizeIcon = createIcon(library, defaultWindow11Option(options, "MinimizeIcon", "lucide:minus"), {
 		Parent = minimize,
 		Position = UDim2.fromScale(0.5, 0.5),
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -1597,7 +1633,7 @@ function MoreUI:CreateWindow(options)
 		Radius = 2,
 		TextureTransparency = 0.92,
 	})
-	local closeIcon = createIcon(library, options.CloseIcon or "lucide:x", {
+	local closeIcon = createIcon(library, defaultWindow11Option(options, "CloseIcon", "lucide:x"), {
 		Parent = close,
 		Position = UDim2.fromScale(0.5, 0.5),
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -1667,6 +1703,21 @@ function MoreUI:CreateWindow(options)
 	pageBlurOverlay.BackgroundTransparency = 1
 	library.PageBlurOverlay = pageBlurOverlay
 
+	function library:_syncTabVisual(tab)
+		if not tab or not tab.Button then
+			return
+		end
+		local compact = self.SidebarCompact == true
+		if tab.Label then
+			tab.Label.Visible = not compact
+		end
+		if tab.IconImage then
+			tab.IconImage.AnchorPoint = compact and Vector2.new(0.5, 0.5) or Vector2.new(0, 0)
+			tab.IconImage.Position = compact and UDim2.fromScale(0.5, 0.5) or UDim2.fromOffset(12, 10)
+			tab.IconImage.Size = compact and UDim2.fromOffset(20, 20) or UDim2.fromOffset(18, 18)
+		end
+	end
+
 	local function updateShadow()
 		shadow.AnchorPoint = window.AnchorPoint
 		shadow.Position = window.Position
@@ -1716,7 +1767,8 @@ function MoreUI:CreateWindow(options)
 			minimize.Size = UDim2.fromOffset(44, 40)
 			close.Size = UDim2.fromOffset(44, 40)
 			for _, tab in ipairs(self.Tabs) do
-				tab.Button.Size = UDim2.fromOffset(120, 34)
+				tab.Button.Size = self.SidebarCompact and UDim2.fromOffset(42, 34) or UDim2.fromOffset(120, 34)
+				self:_syncTabVisual(tab)
 			end
 		else
 			local requested = options.Size or UDim2.fromOffset(640, 440)
@@ -1728,13 +1780,15 @@ function MoreUI:CreateWindow(options)
 			self._openPosition = options.Position or UDim2.new(0.5, 0, 0, topInset)
 			self._hiddenPosition = UDim2.new(0.5, 0, 1, height + 80)
 			topbar.Size = UDim2.new(1, 0, 0, 60)
+			local sidebarWidth = self.SidebarCompact and 60 or 164
+			local pageLeft = sidebarWidth + 24
 			tabbar.Position = UDim2.fromOffset(12, 72)
-			tabbar.Size = UDim2.new(0, 164, 1, -84)
+			tabbar.Size = UDim2.new(0, sidebarWidth, 1, -84)
 			tabbar.ScrollingDirection = Enum.ScrollingDirection.Y
 			tabbar.UIListLayout.FillDirection = Enum.FillDirection.Vertical
 			setCanvasToContent(tabbar, "Y")
-			pages.Position = UDim2.fromOffset(188, 72)
-			pages.Size = UDim2.new(1, -200, 1, -84)
+			pages.Position = UDim2.fromOffset(pageLeft, 72)
+			pages.Size = UDim2.new(1, -(pageLeft + 12), 1, -84)
 			userCard.Visible = true
 			titleLabel.Size = UDim2.new(1, -(titleOffset + 252), 0, 25)
 			subtitleLabel.Size = UDim2.new(1, -(titleOffset + 252), 0, 20)
@@ -1744,7 +1798,8 @@ function MoreUI:CreateWindow(options)
 			minimize.Size = UDim2.fromOffset(46, 38)
 			close.Size = UDim2.fromOffset(46, 38)
 			for _, tab in ipairs(self.Tabs) do
-				tab.Button.Size = UDim2.new(1, 0, 0, 38)
+				tab.Button.Size = UDim2.new(1, 0, 0, self.SidebarCompact and 42 or 38)
+				self:_syncTabVisual(tab)
 			end
 		end
 
@@ -2377,7 +2432,8 @@ function MoreUI:CreateTab(name, icon)
 
 	local button = makeButton({
 		Name = name .. "Button",
-		Size = self.IsMobile and UDim2.fromOffset(132, 36) or UDim2.new(1, 0, 0, 40),
+		Size = self.IsMobile and (self.SidebarCompact and UDim2.fromOffset(42, 36) or UDim2.fromOffset(132, 36))
+			or UDim2.new(1, 0, 0, self.SidebarCompact and 42 or 40),
 		Text = "",
 		TextColor3 = theme.Text,
 		BackgroundColor3 = theme.Surface,
@@ -2393,9 +2449,10 @@ function MoreUI:CreateTab(name, icon)
 	})
 	tab.Button = button
 
-	createIcon(self, icon or name, {
+	local iconImage = createIcon(self, icon or name, {
 		Parent = button,
-		Position = UDim2.fromOffset(12, 10),
+		Position = self.SidebarCompact and UDim2.fromScale(0.5, 0.5) or UDim2.fromOffset(12, 10),
+		AnchorPoint = self.SidebarCompact and Vector2.new(0.5, 0.5) or Vector2.new(0, 0),
 		Size = UDim2.fromOffset(18, 18),
 		Color = theme.Text,
 		TextSize = 17,
@@ -2412,6 +2469,9 @@ function MoreUI:CreateTab(name, icon)
 		ZIndex = 5,
 		Parent = button,
 	})
+	label.Visible = not self.SidebarCompact
+	tab.IconImage = iconImage
+	tab.Label = label
 
 	local pageHolder = new("Frame", {
 		Name = name .. "PageHolder",
@@ -2531,12 +2591,13 @@ function MoreUI:CreateTab(name, icon)
 
 	table.insert(self.Tabs, tab)
 	if self.IsMobile then
-		button.Size = UDim2.fromOffset(132, 36)
+		button.Size = self.SidebarCompact and UDim2.fromOffset(42, 36) or UDim2.fromOffset(132, 36)
 		setCanvasToContent(self.Tabbar, "X")
 	else
-		button.Size = UDim2.new(1, 0, 0, 40)
+		button.Size = UDim2.new(1, 0, 0, self.SidebarCompact and 42 or 40)
 		setCanvasToContent(self.Tabbar, "Y")
 	end
+	self:_syncTabVisual(tab)
 	if not self.SelectedTab then
 		tab:Select()
 	end
@@ -2813,10 +2874,12 @@ function MoreUI:_attachElementMethods(container, content)
 			Radius = 11,
 			TextureTransparency = 0.9,
 		})
-		applyWindowAssetTexture(library, button, options.TextureAsset or "button-link-texture", {
-			Radius = 11,
-			Transparency = options.TextureTransparency or 0.88,
-		})
+		if options.TextureAsset then
+			applyWindowAssetTexture(library, button, options.TextureAsset, {
+				Radius = 11,
+				Transparency = options.TextureTransparency or 0.88,
+			})
+		end
 		if options.Icon then
 			createIcon(library, options.Icon, {
 				Parent = button,
@@ -2870,47 +2933,69 @@ function MoreUI:_attachElementMethods(container, content)
 			Texture = false,
 		})
 		holder.ClipsDescendants = true
-		local stack = new("Frame", {
+		local shell = new("Frame", {
 			Position = UDim2.fromOffset(6, 6),
 			Size = UDim2.new(1, -12, 1, -12),
-			BackgroundTransparency = 1,
+			BackgroundColor3 = options.Color or theme.Control,
+			BackgroundTransparency = options.Transparency or theme.ControlTransparency,
+			BorderSizePixel = 0,
+			ClipsDescendants = true,
 			ZIndex = 5,
 			Parent = holder,
+		}, { corner(options.Radius or 12), stroke(theme.Stroke, 0.24, 1) })
+		applyGlass(shell, theme, options.Radius or 12, "soft", true)
+		applyWindowAssetTexture(library, shell, options.TextureAsset or "button-link-texture", {
+			Radius = options.Radius or 12,
+			Transparency = options.TextureTransparency or 0.76,
+		})
+		local stack = new("Frame", {
+			Size = UDim2.fromScale(1, 1),
+			BackgroundTransparency = 1,
+			ZIndex = 7,
+			Parent = shell,
 		}, { listLayout(0) })
-		local created = { Instance = holder, Buttons = {} }
+		local created = { Instance = holder, Shell = shell, Buttons = {} }
 		for index, item in ipairs(buttons) do
-			local first = index == 1
-			local last = index == #buttons
-			local radius = (#buttons == 1 or first or last) and 10 or 0
 			local button = makeButton({
 				Size = UDim2.new(1, 0, 0, buttonHeight),
 				Text = "",
-				BackgroundColor3 = item.Color or options.Color or theme.Control,
-				BackgroundTransparency = item.Color and 0 or theme.ControlTransparency,
+				BackgroundColor3 = item.Color or theme.SurfaceAlt,
+				BackgroundTransparency = item.Color and 0.72 or 1,
 				TextColor3 = item.Color and theme.AccentText or theme.Text,
 				BorderSizePixel = 0,
-				ZIndex = 6,
+				ClipsDescendants = true,
+				ZIndex = 8,
 				Parent = stack,
-			}, {
-				corner(radius),
-				stroke(theme.Stroke, 0.28, 1),
 			})
-			applyWindowAssetTexture(
-				library,
-				button,
-				item.TextureAsset or options.TextureAsset or "button-link-texture",
-				{
-					Radius = radius,
-					Transparency = item.TextureTransparency or options.TextureTransparency or 0.86,
-				}
-			)
+			local hover = new("Frame", {
+				Name = "Hover",
+				Size = UDim2.fromScale(1, 1),
+				BackgroundColor3 = item.HoverColor or options.HoverColor or theme.AccentSoft,
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				ZIndex = 9,
+				Parent = button,
+			})
+			if index < #buttons then
+				new("Frame", {
+					Name = "Separator",
+					AnchorPoint = Vector2.new(0, 1),
+					Position = UDim2.new(0, 42, 1, 0),
+					Size = UDim2.new(1, -52, 0, 1),
+					BackgroundColor3 = theme.Stroke,
+					BackgroundTransparency = 0.18,
+					BorderSizePixel = 0,
+					ZIndex = 11,
+					Parent = button,
+				})
+			end
 			if item.Icon then
 				createIcon(library, item.Icon, {
 					Parent = button,
 					Position = UDim2.fromOffset(14, math.floor((buttonHeight - 18) / 2)),
 					Size = UDim2.fromOffset(18, 18),
 					Color = item.Color and theme.AccentText or theme.Accent,
-					ZIndex = 7,
+					ZIndex = 12,
 				})
 			end
 			makeText({
@@ -2921,11 +3006,20 @@ function MoreUI:_attachElementMethods(container, content)
 				TextSize = 14,
 				TextXAlignment = Enum.TextXAlignment.Left,
 				TextTruncate = Enum.TextTruncate.AtEnd,
-				ZIndex = 7,
+				ZIndex = 12,
 				Parent = button,
 			})
-			addButtonMotion(button, button.BackgroundColor3, item.HoverColor or options.HoverColor or theme.SurfaceAlt)
+			button.MouseEnter:Connect(function()
+				tween(hover, Fast, { BackgroundTransparency = item.Color and 0.82 or 0.7 })
+			end)
+			button.MouseLeave:Connect(function()
+				tween(hover, Fast, { BackgroundTransparency = 1 })
+			end)
+			button.MouseButton1Down:Connect(function()
+				tween(hover, Fast, { BackgroundTransparency = item.Color and 0.74 or 0.58 })
+			end)
 			button.MouseButton1Click:Connect(function()
+				tween(hover, Fast, { BackgroundTransparency = 1 })
 				safeCall(item.Callback or options.Callback, item, index)
 			end)
 			table.insert(created.Buttons, button)
@@ -2995,15 +3089,16 @@ function MoreUI:_attachElementMethods(container, content)
 		local windowOptions = library._options or {}
 		local onImageAsset = getIconAsset(
 			library,
-			options.ToggleOnImage or options.ToggleOnAsset or windowOptions.ToggleOnImage or windowOptions.ToggleOnAsset,
+			options.ToggleOnImage
+				or options.ToggleOnAsset
+				or defaultWindow11Option(windowOptions, "ToggleOnImage", windowOptions.ToggleOnAsset),
 			96
 		)
 		local offImageAsset = getIconAsset(
 			library,
 			options.ToggleOffImage
 				or options.ToggleOffAsset
-				or windowOptions.ToggleOffImage
-				or windowOptions.ToggleOffAsset,
+				or defaultWindow11Option(windowOptions, "ToggleOffImage", windowOptions.ToggleOffAsset),
 			96
 		)
 		local wantsImageSwitch = options.ToggleStyle == "image" or windowOptions.ToggleStyle == "image"
@@ -3120,22 +3215,30 @@ function MoreUI:_attachElementMethods(container, content)
 				TextureTransparency = 0.88,
 			})
 			if showToggleIcons then
-				onIcon = createIcon(library, options.ToggleOnIcon or "lucide:check", {
-					Parent = knob,
-					Position = UDim2.fromScale(0.5, 0.5),
-					AnchorPoint = Vector2.new(0.5, 0.5),
-					Size = UDim2.fromOffset(12, 12),
-					Color = theme.Accent,
-					ZIndex = 8,
-				})
-				offIcon = createIcon(library, options.ToggleOffIcon or "lucide:x", {
-					Parent = knob,
-					Position = UDim2.fromScale(0.5, 0.5),
-					AnchorPoint = Vector2.new(0.5, 0.5),
-					Size = UDim2.fromOffset(12, 12),
-					Color = theme.StrokeStrong,
-					ZIndex = 8,
-				})
+				onIcon = createIcon(
+					library,
+					options.ToggleOnIcon or defaultWindow11Option(windowOptions, "ToggleOnIcon", "lucide:check"),
+					{
+						Parent = knob,
+						Position = UDim2.fromScale(0.5, 0.5),
+						AnchorPoint = Vector2.new(0.5, 0.5),
+						Size = UDim2.fromOffset(12, 12),
+						Color = theme.Accent,
+						ZIndex = 8,
+					}
+				)
+				offIcon = createIcon(
+					library,
+					options.ToggleOffIcon or defaultWindow11Option(windowOptions, "ToggleOffIcon", "lucide:x"),
+					{
+						Parent = knob,
+						Position = UDim2.fromScale(0.5, 0.5),
+						AnchorPoint = Vector2.new(0.5, 0.5),
+						Size = UDim2.fromOffset(12, 12),
+						Color = theme.StrokeStrong,
+						ZIndex = 8,
+					}
+				)
 			end
 		end
 
@@ -3448,6 +3551,7 @@ function MoreUI:_attachElementMethods(container, content)
 
 	function container:AddStepper(options)
 		options = options or {}
+		local windowOptions = library._options or {}
 		local min = options.Min or 0
 		local max = options.Max or 100
 		local step = options.Step or 1
@@ -3488,14 +3592,20 @@ function MoreUI:_attachElementMethods(container, content)
 			Radius = 9,
 			TextureTransparency = 0.9,
 		})
-		createIcon(library, options.MinusIcon or options.StepperMinusIcon or "lucide:minus", {
-			Parent = minus,
-			Position = UDim2.fromScale(0.5, 0.5),
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Size = UDim2.fromOffset(15, 15),
-			Color = theme.Text,
-			ZIndex = 6,
-		})
+		createIcon(
+			library,
+			options.MinusIcon
+				or options.StepperMinusIcon
+				or defaultWindow11Option(windowOptions, "StepperMinusIcon", "lucide:minus"),
+			{
+				Parent = minus,
+				Position = UDim2.fromScale(0.5, 0.5),
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Size = UDim2.fromOffset(15, 15),
+				Color = theme.Text,
+				ZIndex = 6,
+			}
+		)
 		local plus = makeButton({
 			AnchorPoint = Vector2.new(1, 0.5),
 			Position = UDim2.new(1, -14, 0.5, 0),
@@ -3510,14 +3620,20 @@ function MoreUI:_attachElementMethods(container, content)
 			Radius = 9,
 			TextureTransparency = 0.9,
 		})
-		createIcon(library, options.PlusIcon or options.StepperPlusIcon or "lucide:plus", {
-			Parent = plus,
-			Position = UDim2.fromScale(0.5, 0.5),
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Size = UDim2.fromOffset(15, 15),
-			Color = theme.Text,
-			ZIndex = 6,
-		})
+		createIcon(
+			library,
+			options.PlusIcon
+				or options.StepperPlusIcon
+				or defaultWindow11Option(windowOptions, "StepperPlusIcon", "lucide:plus"),
+			{
+				Parent = plus,
+				Position = UDim2.fromScale(0.5, 0.5),
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Size = UDim2.fromOffset(15, 15),
+				Color = theme.Text,
+				ZIndex = 6,
+			}
+		)
 		local element = { Instance = row, Value = value }
 		function element:Set(newValue)
 			value = math.clamp(tonumber(newValue) or min, min, max)
@@ -4249,6 +4365,7 @@ function MoreUI:_attachElementMethods(container, content)
 
 	function container:AddGroupTabs(options)
 		options = options or {}
+		local iconOnly = options.IconOnly == true or options.Compact == true or options.CompactTabs == true
 		local holder = library:_rowBase(content, options.Height or 0, {
 			Glass = true,
 			Radius = 14,
@@ -4318,8 +4435,12 @@ function MoreUI:_attachElementMethods(container, content)
 				tabOptions = { Title = tostring(tabOptions), Icon = tabIcon }
 			end
 			local tabName = tabOptions.Title or tabOptions.Name or "Tab"
+			local tabIconOnly = tabOptions.IconOnly
+			if tabIconOnly == nil then
+				tabIconOnly = iconOnly
+			end
 			local tabButton = makeButton({
-				Size = UDim2.new(0, tabOptions.Width or 118, 1, 0),
+				Size = UDim2.new(0, tabOptions.Width or (tabIconOnly and 42 or 118), 1, 0),
 				Text = "",
 				BackgroundColor3 = theme.Control,
 				BackgroundTransparency = theme.ControlTransparency,
@@ -4334,8 +4455,9 @@ function MoreUI:_attachElementMethods(container, content)
 			if tabOptions.Icon then
 				createIcon(library, tabOptions.Icon, {
 					Parent = tabButton,
-					Position = UDim2.fromOffset(10, 9),
-					Size = UDim2.fromOffset(16, 16),
+					Position = tabIconOnly and UDim2.fromScale(0.5, 0.5) or UDim2.fromOffset(10, 9),
+					AnchorPoint = tabIconOnly and Vector2.new(0.5, 0.5) or Vector2.new(0, 0),
+					Size = UDim2.fromOffset(tabIconOnly and 18 or 16, tabIconOnly and 18 or 16),
 					Color = theme.Text,
 					ZIndex = 7,
 				})
@@ -4348,6 +4470,7 @@ function MoreUI:_attachElementMethods(container, content)
 				TextSize = 13,
 				TextXAlignment = tabOptions.Icon and Enum.TextXAlignment.Left or Enum.TextXAlignment.Center,
 				TextTruncate = Enum.TextTruncate.AtEnd,
+				Visible = not tabIconOnly,
 				ZIndex = 7,
 				Parent = tabButton,
 			})

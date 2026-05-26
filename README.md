@@ -8,7 +8,7 @@ A Roblox Luau UI library inspired by Windows 11 and liquid glass/mobile bottom-s
 - `Demo.client.lua` - LocalScript example using tabs, cards, group boxes, group tabs, and all major controls.
 - `Assets/moreui-liquid-texture.png` - generated Windows-style texture used by `TexturePath`.
 - `Assets/generated-icon-sheet-v1.png` - generated source sheet for custom UI icons.
-- `Assets/GeneratedIcons/*.png` - cropped PNG icon assets for the window button, library mark, controls, toggles, and steppers.
+- `Assets/GeneratedIcons/*.png` - generated PNG assets for the window button, library mark, controls, toggles, and steppers.
 
 ## Quick Start
 
@@ -29,6 +29,8 @@ local window = MoreUI:CreateWindow({
 	CloseIcon = { Path = "Assets/GeneratedIcons/close-symbol.png", PreserveColor = true },
 	ToggleOnIcon = { Path = "Assets/GeneratedIcons/check-symbol.png", PreserveColor = true },
 	ToggleOffIcon = { Path = "Assets/GeneratedIcons/x-symbol.png", PreserveColor = true },
+	ToggleOnImage = { Path = "Assets/GeneratedIcons/toggle-switch-on.png", PreserveColor = true },
+	ToggleOffImage = { Path = "Assets/GeneratedIcons/toggle-switch-off.png", PreserveColor = true },
 	StepperPlusIcon = { Path = "Assets/GeneratedIcons/plus-symbol.png", PreserveColor = true },
 	StepperMinusIcon = { Path = "Assets/GeneratedIcons/minus-symbol.png", PreserveColor = true },
 	IconHubName = "My Hub",
@@ -66,7 +68,7 @@ section:AddToggle({
 - Smaller default window and lighter corner radius.
 - `TopInset` keeps the UI below the Roblox topbar. Use `64-82` on mobile landscape; increase only if it touches the Roblox top menu.
 - Top-left open button defaults below the Roblox menu area and uses a Windows-style icon.
-- `LibraryIcon`, `OpenIcon`, `MinimizeIcon`, `CloseIcon`, `ToggleOnIcon`, `ToggleOffIcon`, `StepperPlusIcon`, and `StepperMinusIcon` can each use separate image assets.
+- `LibraryIcon`, `OpenIcon`, `MinimizeIcon`, `CloseIcon`, `ToggleOnIcon`, `ToggleOffIcon`, `ToggleOnImage`, `ToggleOffImage`, `StepperPlusIcon`, and `StepperMinusIcon` can each use separate image assets.
 - `TexturePath` can point at a local `getcustomasset` texture for the panel background.
 - Close/minimize hides the UI so the open button can bring it back.
 - `ToggleKey` calls `window:Toggle()` instead of disabling the whole `ScreenGui`.
@@ -91,6 +93,13 @@ OpenIcon = {
 	Path = "Assets/GeneratedIcons/window.png",
 	PreserveColor = true,
 }
+```
+
+For full toggle-switch image assets, use:
+
+```lua
+ToggleOnImage = { Path = "Assets/GeneratedIcons/toggle-switch-on.png", PreserveColor = true }
+ToggleOffImage = { Path = "Assets/GeneratedIcons/toggle-switch-off.png", PreserveColor = true }
 ```
 
 Icons are loaded as image assets. You can also pass an icon provider:
@@ -143,7 +152,7 @@ end)
 - `AddParagraph({ Title, Content, Icon })`
 - `AddCard({ Title, Content, Icon, Callback })`
 - `AddButton({ Text, Icon, Callback })`
-- `AddToggle({ Title, Flag, Default, Callback })`
+- `AddToggle({ Title, Flag, Default, ToggleOnImage, ToggleOffImage, Callback })`
 - `AddCheckbox({ Title, Flag, Default, Callback })`
 - `AddSlider({ Title, Flag, Min, Max, Default, Decimals, Callback })`
 - `AddStepper({ Title, Flag, Min, Max, Step, Default, Callback })`

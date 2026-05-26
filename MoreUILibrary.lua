@@ -796,6 +796,14 @@ function MoreUI:CreateWindow(options)
 		"lucide:crosshair",
 		"lucide:swords",
 	}
+	for _, asset in ipairs({
+		options.ToggleOnImage or options.ToggleOnAsset,
+		options.ToggleOffImage or options.ToggleOffAsset,
+	}) do
+		if asset then
+			table.insert(iconsToPreload, asset)
+		end
+	end
 	for _, icon in ipairs(options.PreloadIcons or {}) do
 		table.insert(iconsToPreload, icon)
 	end
@@ -1920,6 +1928,21 @@ function MoreUI:_attachElementMethods(container, content)
 		options = options or {}
 		local flag = options.Flag
 		local value = options.Default == true
+		local windowOptions = library._options or {}
+		local onImageAsset = getIconAsset(
+			library,
+			options.ToggleOnImage or options.ToggleOnAsset or windowOptions.ToggleOnImage or windowOptions.ToggleOnAsset,
+			96
+		)
+		local offImageAsset = getIconAsset(
+			library,
+			options.ToggleOffImage
+				or options.ToggleOffAsset
+				or windowOptions.ToggleOffImage
+				or windowOptions.ToggleOffAsset,
+			96
+		)
+		local useImageSwitch = onImageAsset ~= nil and offImageAsset ~= nil
 		local row = library:_rowBase(content, options.Height or 52, { Glass = true })
 		makeText({
 			Position = UDim2.fromOffset(14, 0),
@@ -1938,36 +1961,68 @@ function MoreUI:_attachElementMethods(container, content)
 			Size = UDim2.fromOffset(50, 28),
 			Text = "",
 			BackgroundColor3 = value and theme.Accent or theme.StrokeStrong,
+			BackgroundTransparency = useImageSwitch and 1 or 0,
 			BorderSizePixel = 0,
 			ZIndex = 5,
 			Parent = row,
 		}, {
 			corner(12),
 		})
-		local knob = new("Frame", {
-			Size = UDim2.fromOffset(22, 22),
-			Position = value and UDim2.fromOffset(25, 3) or UDim2.fromOffset(3, 3),
-			BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-			BorderSizePixel = 0,
-			ZIndex = 6,
-			Parent = switch,
-		}, { corner(11) })
-		local onIcon = createIcon(library, options.ToggleOnIcon or "lucide:check", {
-			Parent = knob,
-			Position = UDim2.fromScale(0.5, 0.5),
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Size = UDim2.fromOffset(12, 12),
-			Color = theme.Accent,
-			ZIndex = 7,
-		})
-		local offIcon = createIcon(library, options.ToggleOffIcon or "lucide:x", {
-			Parent = knob,
-			Position = UDim2.fromScale(0.5, 0.5),
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Size = UDim2.fromOffset(12, 12),
-			Color = theme.StrokeStrong,
-			ZIndex = 7,
-		})
+		local onTrack
+		local offTrack
+		local knob
+		local onIcon
+		local offIcon
+
+		if useImageSwitch then
+			offTrack = new("ImageLabel", {
+				Name = "OffImage",
+				Size = UDim2.fromScale(1, 1),
+				BackgroundTransparency = 1,
+				Image = offImageAsset,
+				ImageColor3 = Color3.fromRGB(255, 255, 255),
+				ImageTransparency = value and 1 or 0,
+				ScaleType = Enum.ScaleType.Stretch,
+				ZIndex = 6,
+				Parent = switch,
+			})
+			onTrack = new("ImageLabel", {
+				Name = "OnImage",
+				Size = UDim2.fromScale(1, 1),
+				BackgroundTransparency = 1,
+				Image = onImageAsset,
+				ImageColor3 = Color3.fromRGB(255, 255, 255),
+				ImageTransparency = value and 0 or 1,
+				ScaleType = Enum.ScaleType.Stretch,
+				ZIndex = 7,
+				Parent = switch,
+			})
+		else
+			knob = new("Frame", {
+				Size = UDim2.fromOffset(22, 22),
+				Position = value and UDim2.fromOffset(25, 3) or UDim2.fromOffset(3, 3),
+				BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+				BorderSizePixel = 0,
+				ZIndex = 6,
+				Parent = switch,
+			}, { corner(11) })
+			onIcon = createIcon(library, options.ToggleOnIcon or "lucide:check", {
+				Parent = knob,
+				Position = UDim2.fromScale(0.5, 0.5),
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Size = UDim2.fromOffset(12, 12),
+				Color = theme.Accent,
+				ZIndex = 7,
+			})
+			offIcon = createIcon(library, options.ToggleOffIcon or "lucide:x", {
+				Parent = knob,
+				Position = UDim2.fromScale(0.5, 0.5),
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Size = UDim2.fromOffset(12, 12),
+				Color = theme.StrokeStrong,
+				ZIndex = 7,
+			})
+		end
 
 		local element = { Instance = row, Value = value }
 		function element:Set(newValue)
@@ -1976,14 +2031,21 @@ function MoreUI:_attachElementMethods(container, content)
 			if flag then
 				library.Flags[flag] = value
 			end
-			tween(switch, Smooth, { BackgroundColor3 = value and theme.Accent or theme.StrokeStrong })
-			tween(knob, Smooth, { Position = value and UDim2.fromOffset(25, 3) or UDim2.fromOffset(3, 3) })
-			tween(onIcon, Fast, { ImageTransparency = value and 0 or 1 })
-			tween(offIcon, Fast, { ImageTransparency = value and 1 or 0 })
+			if useImageSwitch then
+				tween(onTrack, Smooth, { ImageTransparency = value and 0 or 1 })
+				tween(offTrack, Smooth, { ImageTransparency = value and 1 or 0 })
+			else
+				tween(switch, Smooth, { BackgroundColor3 = value and theme.Accent or theme.StrokeStrong })
+				tween(knob, Smooth, { Position = value and UDim2.fromOffset(25, 3) or UDim2.fromOffset(3, 3) })
+				tween(onIcon, Fast, { ImageTransparency = value and 0 or 1 })
+				tween(offIcon, Fast, { ImageTransparency = value and 1 or 0 })
+			end
 			safeCall(options.Callback, value)
 		end
-		onIcon.ImageTransparency = value and 0 or 1
-		offIcon.ImageTransparency = value and 1 or 0
+		if not useImageSwitch then
+			onIcon.ImageTransparency = value and 0 or 1
+			offIcon.ImageTransparency = value and 1 or 0
+		end
 
 		switch.MouseButton1Click:Connect(function()
 			element:Set(not value)

@@ -15,6 +15,8 @@ local GeneratedIcons = {
 	Minus = "Assets/GeneratedIcons/minus-symbol.png",
 	ToggleOn = "Assets/GeneratedIcons/toggle-on.png",
 	ToggleOff = "Assets/GeneratedIcons/toggle-off.png",
+	ToggleSwitchOn = "Assets/GeneratedIcons/toggle-switch-on.png",
+	ToggleSwitchOff = "Assets/GeneratedIcons/toggle-switch-off.png",
 }
 
 local window = MoreUI:CreateWindow({
@@ -31,6 +33,8 @@ local window = MoreUI:CreateWindow({
 	CloseIcon = { Path = GeneratedIcons.Close, PreserveColor = true },
 	ToggleOnIcon = { Path = GeneratedIcons.Check, PreserveColor = true },
 	ToggleOffIcon = { Path = GeneratedIcons.X, PreserveColor = true },
+	ToggleOnImage = { Path = GeneratedIcons.ToggleSwitchOn, PreserveColor = true },
+	ToggleOffImage = { Path = GeneratedIcons.ToggleSwitchOff, PreserveColor = true },
 	StepperPlusIcon = { Path = GeneratedIcons.Plus, PreserveColor = true },
 	StepperMinusIcon = { Path = GeneratedIcons.Minus, PreserveColor = true },
 	IconHubName = "More UI Library",
@@ -47,6 +51,8 @@ local window = MoreUI:CreateWindow({
 		GeneratedIcons.Minus,
 		GeneratedIcons.ToggleOn,
 		GeneratedIcons.ToggleOff,
+		GeneratedIcons.ToggleSwitchOn,
+		GeneratedIcons.ToggleSwitchOff,
 		"lucide:home",
 		"lucide:settings",
 		"lucide:crosshair",

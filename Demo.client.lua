@@ -39,6 +39,9 @@ local window = MoreUI:CreateWindow({
 	StepperPlusIcon = GeneratedIcons.Plus,
 	StepperMinusIcon = GeneratedIcons.Minus,
 	IconHubName = "More UI Library",
+	Window11Icons = true,
+	WindowBackgroundAsset = MoreUI.Window11Asset("window11-background"),
+	WindowBackgroundTransparency = 0.24,
 	ControlTextureAsset = MoreUI.Window11Asset("control-texture"),
 	ControlTextureTransparency = 0.84,
 	TextureAsset = MoreUI.Window11Asset("moreui-liquid-texture"),
@@ -74,9 +77,9 @@ local window = MoreUI:CreateWindow({
 	},
 })
 
-local main = window:CreateTab("Main", "lucide:home")
-local combat = window:CreateTab("Combat", "lucide:target")
-local settings = window:CreateTab("Settings", "lucide:settings")
+local main = window:CreateTab("Main", MoreUI.Window11Icon("home"))
+local combat = window:CreateTab("Combat", MoreUI.Window11Icon("target"))
+local settings = window:CreateTab("Settings", MoreUI.Window11Icon("settings"))
 
 local overview = main:CreateSection("Overview", {
 	Icon = "lucide:home",

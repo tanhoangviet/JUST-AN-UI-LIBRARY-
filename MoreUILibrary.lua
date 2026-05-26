@@ -21,6 +21,28 @@ MoreUI.Window11AssetBaseUrl =
 MoreUI.Window11AssetUrls = {
 	["control-texture"] = "https://raw.githubusercontent.com/tanhoangviet/JUST-AN-UI-LIBRARY-/main/Assets/control-texture.png",
 	["moreui-liquid-texture"] = "https://raw.githubusercontent.com/tanhoangviet/JUST-AN-UI-LIBRARY-/main/Assets/moreui-liquid-texture.png",
+	["window11-background"] = "https://raw.githubusercontent.com/tanhoangviet/JUST-AN-UI-LIBRARY-/main/Assets/window11-background.png",
+}
+MoreUI.Window11Icons = {
+	bell = "w11-bell",
+	combat = "w11-target",
+	config = "w11-folder",
+	crosshair = "w11-target",
+	folder = "w11-folder",
+	gear = "w11-settings",
+	home = "w11-home",
+	keyboard = "w11-keyboard",
+	main = "w11-home",
+	palette = "w11-palette",
+	profile = "w11-user",
+	save = "w11-save",
+	search = "w11-search",
+	settings = "w11-settings",
+	sliders = "w11-sliders",
+	["sliders-horizontal"] = "w11-sliders",
+	sparkles = "w11-sparkles",
+	target = "w11-target",
+	user = "w11-user",
 }
 
 local Theme = {
@@ -84,6 +106,8 @@ local IconAliases = {
 	["lucide:add"] = "lucide:plus",
 	["lucide:on"] = "lucide:check",
 	["lucide:off"] = "lucide:x",
+	["lucide:target"] = "lucide:crosshair",
+	["lucide:sparkle"] = "lucide:sparkles",
 	gear = "lucide:settings",
 	aim = "lucide:crosshair",
 	combat = "lucide:swords",
@@ -234,6 +258,34 @@ local function getIconValue(icon)
 		return icon.Path or icon.Asset or icon.Image or icon.Window11 or icon.Name or icon.Icon or icon[1]
 	end
 	return icon
+end
+
+local function normalizeIconKey(icon)
+	local rawIcon = getIconValue(icon)
+	if typeof(rawIcon) ~= "string" then
+		return nil
+	end
+	rawIcon = IconAliases[rawIcon] or IconAliases[string.lower(rawIcon)] or rawIcon
+	local colon = string.find(rawIcon, ":", 1, true)
+	if colon then
+		rawIcon = string.sub(rawIcon, colon + 1)
+	end
+	rawIcon = string.lower(rawIcon)
+	rawIcon = string.gsub(rawIcon, "_", "-")
+	rawIcon = string.gsub(rawIcon, "%-bold$", "")
+	rawIcon = string.gsub(rawIcon, "%-linear$", "")
+	return rawIcon
+end
+
+local function getWindow11IconAssetName(icon)
+	local key = normalizeIconKey(icon)
+	if not key then
+		return nil
+	end
+	if string.sub(key, 1, 4) == "w11-" then
+		return key
+	end
+	return MoreUI.Window11Icons[key]
 end
 
 local function isLocalImagePath(value)
@@ -410,6 +462,9 @@ local function getWindow11AssetFallbackPath(assetName)
 	if cleanName == "moreui-liquid-texture" then
 		return "Assets/moreui-liquid-texture.png"
 	end
+	if cleanName == "window11-background" then
+		return "Assets/window11-background.png"
+	end
 	return "Assets/GeneratedIcons/" .. normalizePngName(cleanName)
 end
 
@@ -472,6 +527,15 @@ local function getIconAsset(library, icon, size)
 		local asset = getWindow11Asset(library, icon)
 		if asset then
 			return asset
+		end
+	end
+	if library and library._options and library._options.Window11Icons ~= false then
+		local window11Icon = getWindow11IconAssetName(icon)
+		if window11Icon then
+			local asset = getWindow11Asset(library, window11Icon)
+			if asset then
+				return asset
+			end
 		end
 	end
 	icon = getIconValue(icon)
@@ -583,6 +647,12 @@ local function createIcon(library, icon, props)
 	end
 	if preserveColor == nil then
 		preserveColor = isLocalImagePath(rawIcon)
+			or (
+				library
+				and library._options
+				and library._options.Window11Icons ~= false
+				and getWindow11IconAssetName(icon) ~= nil
+			)
 	end
 	return new("ImageLabel", {
 		Name = props.Name or "Icon",
@@ -978,6 +1048,15 @@ function MoreUI.Window11Asset(name, options)
 	}
 end
 
+function MoreUI.Window11Icon(name, options)
+	local key = normalizeIconKey(name) or tostring(name or "home")
+	local assetName = getWindow11IconAssetName(name)
+	if not assetName then
+		assetName = string.sub(key, 1, 4) == "w11-" and key or ("w11-" .. key)
+	end
+	return MoreUI.Window11Asset(assetName, options)
+end
+
 function MoreUI:CreateWindow(options)
 	options = options or {}
 
@@ -1167,6 +1246,29 @@ function MoreUI:CreateWindow(options)
 	}, {
 		corner(library.Theme.Radius + 2),
 	})
+	local windowBackgroundAsset
+	if options.WindowBackgroundAsset ~= false and options.BackgroundAsset ~= false then
+		windowBackgroundAsset = getWindow11Asset(
+			library,
+			options.WindowBackgroundAsset or options.BackgroundAsset or "window11-background",
+			options.WindowBackgroundPath or "Assets/window11-background.png"
+		)
+	end
+	if windowBackgroundAsset then
+		new("ImageLabel", {
+			Name = "Window11Background",
+			Size = UDim2.fromScale(1, 1),
+			BackgroundTransparency = 1,
+			Image = windowBackgroundAsset,
+			ImageTransparency = options.WindowBackgroundTransparency or 0.26,
+			ImageColor3 = options.Dark and Color3.fromRGB(170, 205, 255) or Color3.fromRGB(255, 255, 255),
+			ScaleType = Enum.ScaleType.Crop,
+			ZIndex = 2,
+			Parent = animatedBackground,
+		}, {
+			corner(library.Theme.Radius + 2),
+		})
+	end
 	local animatedGradient = new("UIGradient", {
 		Name = "MovingGradient",
 		Rotation = 18,
@@ -1471,6 +1573,11 @@ function MoreUI:CreateWindow(options)
 		stroke(library.Theme.Stroke, 0.24, 1),
 		padding(10),
 		listLayout(8),
+	})
+	applyGlass(tabbar, library.Theme, library.Theme.Radius + 2, "soft")
+	applyControlTexture(library, tabbar, {
+		Radius = library.Theme.Radius + 2,
+		TextureTransparency = 0.88,
 	})
 	library.Sidebar = tabbar
 	library.Tabbar = tabbar
@@ -1855,23 +1962,33 @@ function MoreUI:CreateTab(name, icon)
 		Parent = button,
 	})
 
+	local pageHolder = new("Frame", {
+		Name = name .. "PageHolder",
+		Position = UDim2.fromScale(0, 0),
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		ClipsDescendants = true,
+		Visible = false,
+		ZIndex = 3,
+		Parent = self.Pages,
+	})
+	getOrCreateScale(pageHolder, "PageScale")
+	tab.Holder = pageHolder
+
 	local page = new("ScrollingFrame", {
 		Name = name .. "Page",
-		Position = UDim2.fromScale(0, 0),
 		Size = UDim2.fromScale(1, 1),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		ScrollBarImageColor3 = theme.StrokeStrong,
 		ScrollBarThickness = 3,
 		CanvasSize = UDim2.fromOffset(0, 0),
-		Visible = false,
-		ZIndex = 3,
-		Parent = self.Pages,
+		ZIndex = 4,
+		Parent = pageHolder,
 	}, {
 		padding(2),
 		listLayout(10),
 	})
-	getOrCreateScale(page, "PageScale")
 	tab.Page = page
 	setCanvasToContent(page, "Y")
 
@@ -1885,28 +2002,28 @@ function MoreUI:CreateTab(name, icon)
 		end
 
 		for _, other in ipairs(self.Library.Tabs) do
-			if other.Page.Visible and other ~= self then
-				local oldPage = other.Page
-				local oldScale = getOrCreateScale(oldPage, "PageScale")
-				oldPage.ZIndex = 3
-				tween(oldPage, Smooth, {
+			local otherHolder = other.Holder or other.Page
+			if otherHolder.Visible and other ~= self then
+				local oldScale = getOrCreateScale(otherHolder, "PageScale")
+				otherHolder.ZIndex = 3
+				tween(otherHolder, Smooth, {
 					Position = UDim2.fromOffset(0, -18),
-					ScrollBarImageTransparency = 1,
 				})
+				tween(other.Page, Smooth, { ScrollBarImageTransparency = 1 })
 				tween(oldScale, Smooth, { Scale = 0.982 })
 				task.delay(0.22, function()
-					if other.Page and not other.Selected then
-						other.Page.Visible = false
-						other.Page.Position = UDim2.fromScale(0, 0)
+					if otherHolder and otherHolder.Parent and not other.Selected then
+						otherHolder.Visible = false
+						otherHolder.Position = UDim2.fromScale(0, 0)
 						other.Page.ScrollBarImageTransparency = 0
-						local resetScale = other.Page:FindFirstChild("PageScale")
+						local resetScale = otherHolder:FindFirstChild("PageScale")
 						if resetScale then
 							resetScale.Scale = 1
 						end
 					end
 				end)
 			elseif other ~= self then
-				other.Page.Visible = false
+				otherHolder.Visible = false
 			end
 			other.Selected = false
 			tween(other.Button, Fast, {
@@ -1920,12 +2037,13 @@ function MoreUI:CreateTab(name, icon)
 		end
 
 		self.Selected = true
-		self.Page.Visible = true
-		self.Page.Position = UDim2.fromOffset(0, 22)
+		local holder = self.Holder or self.Page
+		holder.Visible = true
+		holder.Position = UDim2.fromOffset(0, 22)
+		holder.ZIndex = 4
 		self.Page.CanvasPosition = Vector2.new(0, 0)
 		self.Page.ScrollBarImageTransparency = 1
-		self.Page.ZIndex = 4
-		local pageScale = getOrCreateScale(self.Page, "PageScale")
+		local pageScale = getOrCreateScale(holder, "PageScale")
 		pageScale.Scale = 0.986
 		tween(self.Button, Smooth, {
 			BackgroundColor3 = theme.Accent,
@@ -1933,10 +2051,10 @@ function MoreUI:CreateTab(name, icon)
 		})
 		tween(label, Fast, { TextColor3 = theme.AccentText })
 		self.Library.SelectedTab = self
-		tween(self.Page, Smooth, {
+		tween(holder, Smooth, {
 			Position = UDim2.fromScale(0, 0),
-			ScrollBarImageTransparency = 0,
 		})
+		tween(self.Page, Smooth, { ScrollBarImageTransparency = 0 })
 		tween(pageScale, Smooth, { Scale = 1 })
 	end
 
@@ -2353,7 +2471,7 @@ function MoreUI:_attachElementMethods(container, content)
 		local switch = makeButton({
 			AnchorPoint = Vector2.new(1, 0.5),
 			Position = UDim2.new(1, -14, 0.5, 0),
-			Size = UDim2.fromOffset(50, 28),
+			Size = UDim2.fromOffset(56, 30),
 			Text = "",
 			BackgroundColor3 = theme.StrokeStrong,
 			BackgroundTransparency = 1,
@@ -2393,51 +2511,61 @@ function MoreUI:_attachElementMethods(container, content)
 				Parent = switch,
 			})
 		else
-			local showToggleIcons = options.ShowToggleIcons == true or windowOptions.ShowToggleIcons == true
+			local showToggleIcons = options.ShowToggleIcons ~= false and windowOptions.ShowToggleIcons ~= false
+			new("Frame", {
+				Name = "ToggleShadow",
+				Position = UDim2.fromOffset(0, 2),
+				Size = UDim2.fromScale(1, 1),
+				BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+				BackgroundTransparency = 0.9,
+				BorderSizePixel = 0,
+				ZIndex = 4,
+				Parent = switch,
+			}, { corner(15) })
 			offTrack = new("Frame", {
 				Name = "OffTrack",
 				Size = UDim2.fromScale(1, 1),
-				BackgroundColor3 = value and theme.AccentSoft or theme.StrokeStrong,
-				BackgroundTransparency = value and 0.34 or 0.18,
+				BackgroundColor3 = value and theme.AccentSoft or Color3.fromRGB(226, 232, 240),
+				BackgroundTransparency = value and 0.22 or 0.04,
 				BorderSizePixel = 0,
 				ZIndex = 5,
 				Parent = switch,
-			}, { corner(14), stroke(theme.Stroke, 0.38, 1) })
+			}, { corner(15), stroke(theme.Stroke, 0.26, 1) })
 			applyControlTexture(library, offTrack, {
-				Radius = 14,
-				TextureTransparency = 0.92,
+				Radius = 15,
+				TextureTransparency = 0.9,
 			})
 			onTrack = new("Frame", {
 				Name = "OnTrack",
 				AnchorPoint = Vector2.new(0.5, 0.5),
-				Position = value and UDim2.fromScale(0.5, 0.5) or UDim2.new(1, -14, 0.5, 0),
-				Size = value and UDim2.fromScale(1, 1) or UDim2.fromOffset(28, 28),
-				BackgroundColor3 = theme.Accent,
+				Position = value and UDim2.fromScale(0.5, 0.5) or UDim2.new(1, -15, 0.5, 0),
+				Size = value and UDim2.fromScale(1, 1) or UDim2.fromOffset(30, 30),
+				BackgroundColor3 = theme.AccentHover,
 				BackgroundTransparency = value and 0 or 1,
 				BorderSizePixel = 0,
 				ZIndex = 6,
 				Parent = switch,
-			}, { corner(14) })
+			}, { corner(15) })
 			applyControlTexture(library, onTrack, {
-				Radius = 14,
-				TextureTransparency = 0.94,
+				Radius = 15,
+				TextureTransparency = 0.9,
 			})
 			knob = new("Frame", {
-				Size = UDim2.fromOffset(22, 22),
-				Position = value and UDim2.fromOffset(25, 3) or UDim2.fromOffset(3, 3),
+				Size = UDim2.fromOffset(24, 24),
+				Position = value and UDim2.fromOffset(29, 3) or UDim2.fromOffset(3, 3),
 				BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 				BorderSizePixel = 0,
 				ZIndex = 7,
 				Parent = switch,
-			}, { corner(11) })
+			}, { corner(12), stroke(Color3.fromRGB(255, 255, 255), 0.45, 1) })
 			new("UIScale", {
 				Name = "KnobScale",
 				Scale = 1,
 				Parent = knob,
 			})
 			applyControlTexture(library, knob, {
-				Radius = 11,
-				TextureTransparency = 0.92,
+				Radius = 12,
+				TextureTransparency = 0.88,
 			})
 			if showToggleIcons then
 				onIcon = createIcon(library, options.ToggleOnIcon or "lucide:check", {
@@ -2471,15 +2599,15 @@ function MoreUI:_attachElementMethods(container, content)
 				tween(offTrack, Smooth, { ImageTransparency = value and 1 or 0 })
 			else
 				tween(offTrack, Smooth, {
-					BackgroundColor3 = value and theme.AccentSoft or theme.StrokeStrong,
-					BackgroundTransparency = value and 0.34 or 0.18,
+					BackgroundColor3 = value and theme.AccentSoft or Color3.fromRGB(226, 232, 240),
+					BackgroundTransparency = value and 0.22 or 0.04,
 				})
 				tween(onTrack, Smooth, {
-					Position = value and UDim2.fromScale(0.5, 0.5) or UDim2.new(1, -14, 0.5, 0),
-					Size = value and UDim2.fromScale(1, 1) or UDim2.fromOffset(28, 28),
+					Position = value and UDim2.fromScale(0.5, 0.5) or UDim2.new(1, -15, 0.5, 0),
+					Size = value and UDim2.fromScale(1, 1) or UDim2.fromOffset(30, 30),
 					BackgroundTransparency = value and 0 or 1,
 				})
-				tween(knob, Smooth, { Position = value and UDim2.fromOffset(25, 3) or UDim2.fromOffset(3, 3) })
+				tween(knob, Smooth, { Position = value and UDim2.fromOffset(29, 3) or UDim2.fromOffset(3, 3) })
 				local knobScale = knob:FindFirstChild("KnobScale")
 				if knobScale then
 					tween(knobScale, Fast, { Scale = 0.9 })
@@ -3412,10 +3540,16 @@ function MoreUI:_attachElementMethods(container, content)
 
 		local tabButtons = new("Frame", {
 			Size = UDim2.new(1, 0, 0, 36),
-			BackgroundTransparency = 1,
+			BackgroundColor3 = theme.Surface,
+			BackgroundTransparency = 0.22,
 			ZIndex = 5,
 			Parent = holder,
-		}, { listLayout(6, true) })
+		}, { corner(12), padding(4), listLayout(6, true) })
+		applyGlass(tabButtons, theme, 12, "soft", true)
+		applyControlTexture(library, tabButtons, {
+			Radius = 12,
+			TextureTransparency = 0.9,
+		})
 		local pages = new("Frame", {
 			Size = UDim2.new(1, 0, 0, 0),
 			AutomaticSize = Enum.AutomaticSize.Y,

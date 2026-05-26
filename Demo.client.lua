@@ -216,7 +216,13 @@ advancedTab:AddSegmented({
 advancedTab:AddMultiDropdown({
 	Title = "Enabled Modules",
 	Flag = "modules",
-	Values = { "ESP", "Trail", "Hitbox", "Sound" },
+	Style = "card",
+	Values = {
+		{ Title = "ESP", Desc = "Draw player overlays", Icon = "lucide:target", Value = "ESP" },
+		{ Title = "Trail", Desc = "Movement path preview", Icon = "lucide:sparkles", Value = "Trail" },
+		{ Title = "Hitbox", Desc = "Hitbox helper", Icon = "lucide:sliders", Value = "Hitbox" },
+		{ Title = "Sound", Desc = "Sound cues", Icon = "lucide:bell", Value = "Sound" },
+	},
 	Default = { "ESP", "Sound" },
 })
 
@@ -241,7 +247,17 @@ aim:AddSlider({
 aim:AddDropdown({
 	Title = "Target Part",
 	Flag = "target_part",
-	Values = { "Head", "UpperTorso", "HumanoidRootPart" },
+	Style = "card",
+	Values = {
+		{ Title = "Head", Desc = "Highest priority", Icon = "lucide:target", Value = "Head" },
+		{ Title = "UpperTorso", Desc = "Stable center aim", Icon = "lucide:user", Value = "UpperTorso" },
+		{
+			Title = "HumanoidRootPart",
+			Desc = "Root part target",
+			Icon = "lucide:crosshair",
+			Value = "HumanoidRootPart",
+		},
+	},
 	Default = "Head",
 })
 

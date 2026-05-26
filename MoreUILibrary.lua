@@ -1251,6 +1251,7 @@ function MoreUI:CreateWindow(options)
 		BackgroundColor3 = library.Theme.Background,
 		BackgroundTransparency = options.Dark and 0.34 or 0.18,
 		BorderSizePixel = 0,
+		ClipsDescendants = true,
 		ZIndex = 2,
 		Parent = window,
 	}, {
@@ -1542,6 +1543,7 @@ function MoreUI:CreateWindow(options)
 		TextColor3 = library.Theme.Text,
 		BackgroundColor3 = library.Theme.SurfaceAlt,
 		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
 		ZIndex = 5,
 		Parent = controlRow,
 	})
@@ -1553,7 +1555,7 @@ function MoreUI:CreateWindow(options)
 		Parent = minimize,
 		Position = UDim2.fromScale(0.5, 0.5),
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Size = UDim2.fromOffset(18, 18),
+		Size = UDim2.fromOffset(15, 15),
 		Color = library.Theme.Text,
 		ZIndex = 6,
 	})
@@ -1575,6 +1577,7 @@ function MoreUI:CreateWindow(options)
 		TextColor3 = library.Theme.Text,
 		BackgroundColor3 = library.Theme.SurfaceAlt,
 		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
 		ZIndex = 5,
 		Parent = controlRow,
 	})
@@ -1586,7 +1589,7 @@ function MoreUI:CreateWindow(options)
 		Parent = close,
 		Position = UDim2.fromScale(0.5, 0.5),
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Size = UDim2.fromOffset(18, 18),
+		Size = UDim2.fromOffset(15, 15),
 		Color = library.Theme.Text,
 		ZIndex = 6,
 	})
@@ -1594,8 +1597,8 @@ function MoreUI:CreateWindow(options)
 		close,
 		closeIcon,
 		library.Theme.SurfaceAlt,
-		library.Theme.Danger,
-		Color3.fromRGB(170, 30, 24),
+		Color3.fromRGB(232, 70, 58),
+		Color3.fromRGB(190, 42, 34),
 		library.Theme.Text,
 		Color3.fromRGB(255, 255, 255)
 	)
@@ -1697,9 +1700,9 @@ function MoreUI:CreateWindow(options)
 			titleLabel.Size = UDim2.new(1, -(titleOffset + 110), 0, 25)
 			subtitleLabel.Size = UDim2.new(1, -(titleOffset + 110), 0, 20)
 			controlRow.Position = UDim2.new(1, 0, 0, 0)
-			controlRow.Size = UDim2.fromOffset(92, 44)
-			minimize.Size = UDim2.fromOffset(46, 44)
-			close.Size = UDim2.fromOffset(46, 44)
+			controlRow.Size = UDim2.fromOffset(88, 40)
+			minimize.Size = UDim2.fromOffset(44, 40)
+			close.Size = UDim2.fromOffset(44, 40)
 			for _, tab in ipairs(self.Tabs) do
 				tab.Button.Size = UDim2.fromOffset(120, 34)
 			end
@@ -1725,9 +1728,9 @@ function MoreUI:CreateWindow(options)
 			subtitleLabel.Size = UDim2.new(1, -(titleOffset + 252), 0, 20)
 			userCard.Position = UDim2.new(1, -108, 0, 9)
 			controlRow.Position = UDim2.new(1, 0, 0, 0)
-			controlRow.Size = UDim2.fromOffset(96, 40)
-			minimize.Size = UDim2.fromOffset(48, 40)
-			close.Size = UDim2.fromOffset(48, 40)
+			controlRow.Size = UDim2.fromOffset(92, 38)
+			minimize.Size = UDim2.fromOffset(46, 38)
+			close.Size = UDim2.fromOffset(46, 38)
 			for _, tab in ipairs(self.Tabs) do
 				tab.Button.Size = UDim2.new(1, 0, 0, 38)
 			end
@@ -2212,6 +2215,137 @@ function MoreUI:Popup(options)
 	options.Size = options.Size or UDim2.fromOffset(330, 168)
 	options.Title = options.Title or "Popup"
 	return self:Dialog(options)
+end
+
+function MoreUI:ShowKeybindMenu(options)
+	options = options or {}
+	local theme = self.Theme or Theme
+	local parent = self.Window or self.ScreenGui
+	if not parent then
+		return nil
+	end
+	local keys = options.Keys
+		or {
+			Enum.KeyCode.RightShift,
+			Enum.KeyCode.LeftShift,
+			Enum.KeyCode.E,
+			Enum.KeyCode.Q,
+			Enum.KeyCode.F,
+			Enum.KeyCode.R,
+			Enum.KeyCode.X,
+			Enum.KeyCode.C,
+			Enum.KeyCode.V,
+			Enum.KeyCode.Z,
+		}
+
+	local overlay = new("Frame", {
+		Name = "KeybindMenuOverlay",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Color3.fromRGB(8, 10, 14),
+		BackgroundTransparency = 0.88,
+		BorderSizePixel = 0,
+		ZIndex = 58,
+		Parent = parent,
+	})
+	local card = new("Frame", {
+		Name = "KeybindMenu",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(330, 232),
+		BackgroundColor3 = theme.Surface,
+		BorderSizePixel = 0,
+		ZIndex = 59,
+		Parent = overlay,
+	}, {
+		corner(18),
+		stroke(theme.Stroke, 0.18, 1),
+	})
+	applyGlass(card, theme, 18, "strong")
+	applyControlTexture(self, card, {
+		Radius = 18,
+		TextureTransparency = 0.88,
+	})
+	local scale = new("UIScale", { Scale = 0.96, Parent = card })
+	tween(scale, Smooth, { Scale = 1 })
+
+	makeText({
+		Position = UDim2.fromOffset(18, 14),
+		Size = UDim2.new(1, -54, 0, 28),
+		Text = options.Title or "Keybind",
+		TextColor3 = theme.Text,
+		TextSize = 17,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		FontFace = Font.new("rbxasset://fonts/families/BuilderSans.json", Enum.FontWeight.Bold),
+		ZIndex = 60,
+		Parent = card,
+	})
+	local close = makeButton({
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -12, 0, 12),
+		Size = UDim2.fromOffset(30, 30),
+		Text = "×",
+		TextColor3 = theme.Text,
+		TextSize = 18,
+		BackgroundColor3 = theme.Control,
+		BackgroundTransparency = theme.ControlTransparency,
+		BorderSizePixel = 0,
+		ZIndex = 60,
+		Parent = card,
+	}, { corner(9), stroke(theme.Stroke, 0.3, 1) })
+
+	local grid = new("Frame", {
+		Position = UDim2.fromOffset(18, 54),
+		Size = UDim2.new(1, -36, 1, -72),
+		BackgroundTransparency = 1,
+		ZIndex = 60,
+		Parent = card,
+	}, {
+		new("UIGridLayout", {
+			CellSize = UDim2.fromOffset(88, 38),
+			CellPadding = UDim2.fromOffset(9, 9),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}),
+	})
+
+	local menu = { Instance = overlay, Card = card }
+	function menu:Close()
+		if overlay.Parent then
+			tween(scale, Fast, { Scale = 0.96 })
+			tween(overlay, Fast, { BackgroundTransparency = 1 })
+			task.delay(0.14, function()
+				if overlay.Parent then
+					overlay:Destroy()
+				end
+			end)
+		end
+	end
+	close.MouseButton1Click:Connect(function()
+		menu:Close()
+	end)
+	for index, key in ipairs(keys) do
+		local label = typeof(key) == "EnumItem" and key.Name or tostring(key)
+		local button = makeButton({
+			LayoutOrder = index,
+			Text = label,
+			TextColor3 = theme.Text,
+			TextSize = 13,
+			BackgroundColor3 = key == options.Current and theme.AccentSoft or theme.Control,
+			BackgroundTransparency = key == options.Current and 0.08 or theme.ControlTransparency,
+			BorderSizePixel = 0,
+			ZIndex = 61,
+			Parent = grid,
+		}, { corner(10), stroke(key == options.Current and theme.Accent or theme.Stroke, 0.24, 1) })
+		applyControlTexture(self, button, {
+			Radius = 10,
+			TextureTransparency = 0.86,
+		})
+		addButtonMotion(button, button.BackgroundColor3, theme.SurfaceAlt)
+		button.MouseButton1Click:Connect(function()
+			safeCall(options.Callback, key)
+			menu:Close()
+		end)
+	end
+	return menu
 end
 
 function MoreUI:CreateTab(name, icon)
@@ -3037,8 +3171,8 @@ function MoreUI:_attachElementMethods(container, content)
 		})
 		local rail = new("Frame", {
 			Position = UDim2.fromOffset(14, 44),
-			Size = UDim2.new(1, -28, 0, 7),
-			BackgroundColor3 = theme.Stroke,
+			Size = UDim2.new(1, -28, 0, 8),
+			BackgroundColor3 = Color3.fromRGB(224, 232, 242),
 			BorderSizePixel = 0,
 			ZIndex = 5,
 			Parent = row,
@@ -3049,27 +3183,80 @@ function MoreUI:_attachElementMethods(container, content)
 		})
 		local fill = new("Frame", {
 			Size = UDim2.fromScale((value - min) / (max - min), 1),
-			BackgroundColor3 = theme.Accent,
+			BackgroundColor3 = theme.AccentHover,
 			BorderSizePixel = 0,
 			ZIndex = 6,
 			Parent = rail,
-		}, { corner(4) })
+		}, {
+			corner(4),
+			new("UIGradient", {
+				Name = "SliderSheet",
+				Rotation = 0,
+				Offset = Vector2.new(-0.65, 0),
+				Color = ColorSequence.new({
+					ColorSequenceKeypoint.new(0, theme.Accent),
+					ColorSequenceKeypoint.new(0.48, Color3.fromRGB(120, 210, 255)),
+					ColorSequenceKeypoint.new(1, theme.AccentHover),
+				}),
+			}),
+		})
 		applyControlTexture(library, fill, {
 			Radius = 4,
-			TextureTransparency = 0.92,
+			TextureTransparency = 0.88,
 		})
+		local sliderGradient = fill:FindFirstChild("SliderSheet")
+		local sliderAlive = true
+		table.insert(library._connections, {
+			Disconnect = function()
+				sliderAlive = false
+			end,
+		})
+		local function playSliderSheet()
+			if not sliderAlive or not sliderGradient or not sliderGradient.Parent then
+				return
+			end
+			sliderGradient.Offset = Vector2.new(-0.65, 0)
+			local sheetTween =
+				tween(sliderGradient, TweenInfo.new(1.9, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+					Offset = Vector2.new(0.65, 0),
+				})
+			local connection
+			connection = sheetTween.Completed:Connect(function()
+				if connection then
+					connection:Disconnect()
+				end
+				playSliderSheet()
+			end)
+		end
+		playSliderSheet()
 		local thumb = new("Frame", {
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale((value - min) / (max - min), 0.5),
-			Size = UDim2.fromOffset(18, 18),
+			Size = UDim2.fromOffset(22, 22),
 			BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 			BorderSizePixel = 0,
 			ZIndex = 7,
 			Parent = rail,
-		}, { corner(9), stroke(theme.Accent, 0, 2) })
+		}, { corner(11), stroke(theme.Accent, 0, 2) })
+		new("Frame", {
+			Name = "ThumbGlow",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromOffset(9, 9),
+			BackgroundColor3 = theme.Accent,
+			BackgroundTransparency = 0.2,
+			BorderSizePixel = 0,
+			ZIndex = 8,
+			Parent = thumb,
+		}, { corner(5) })
+		local thumbScale = new("UIScale", {
+			Name = "ThumbScale",
+			Scale = 1,
+			Parent = thumb,
+		})
 		applyControlTexture(library, thumb, {
-			Radius = 9,
-			TextureTransparency = 0.9,
+			Radius = 11,
+			TextureTransparency = 0.86,
 		})
 
 		local element = { Instance = row, Value = value }
@@ -3100,6 +3287,7 @@ function MoreUI:_attachElementMethods(container, content)
 				or input.UserInputType == Enum.UserInputType.Touch
 			then
 				dragging = true
+				tween(thumbScale, Fast, { Scale = 1.08 })
 				updateFromX(input.Position.X)
 			end
 		end)
@@ -3125,6 +3313,7 @@ function MoreUI:_attachElementMethods(container, content)
 					or input.UserInputType == Enum.UserInputType.Touch
 				then
 					dragging = false
+					tween(thumbScale, Fast, { Scale = 1 })
 				end
 			end)
 		)
@@ -3227,11 +3416,62 @@ function MoreUI:_attachElementMethods(container, content)
 	function container:AddDropdown(options)
 		options = options or {}
 		local values = options.Values or options.Options or {}
-		local value = options.Default or values[1]
+		local multi = options.Multi == true or options.Mode == "Multi" or options.Type == "Multi"
+		local style = options.Style or options.Mode or options.Type or "single"
+		local cardStyle = string.lower(tostring(style)) == "card" or options.Cards == true
 		local flag = options.Flag
+		local selected = {}
+		local value = options.Default or values[1]
+		if multi then
+			value = {}
+			for _, item in ipairs(options.Default or {}) do
+				selected[item] = true
+				table.insert(value, item)
+			end
+		end
 		local expanded = false
 		local row = library:_rowBase(content, 52, { Glass = true })
 		row.ClipsDescendants = true
+
+		local function itemTitle(item)
+			if typeof(item) == "table" then
+				return item.Title or item.Name or item.Text or tostring(item.Value or "Option")
+			end
+			return tostring(item)
+		end
+		local function itemValue(item)
+			if typeof(item) == "table" then
+				return item.Value or item.Id or item.Name or item.Title or item.Text or tostring(item)
+			end
+			return item
+		end
+		local function itemDesc(item)
+			if typeof(item) == "table" then
+				return item.Desc or item.Description or item.Subtitle
+			end
+			return nil
+		end
+		local function displayValue()
+			if multi then
+				local text = {}
+				for _, item in ipairs(values) do
+					local current = itemValue(item)
+					if selected[current] then
+						table.insert(text, itemTitle(item))
+					end
+				end
+				return #text > 0 and table.concat(text, ", ") or "None"
+			end
+			for _, item in ipairs(values) do
+				if itemValue(item) == value then
+					return itemTitle(item)
+				end
+			end
+			return itemTitle(value or "None")
+		end
+		if not multi and typeof(value) == "table" then
+			value = itemValue(value)
+		end
 
 		local button = makeButton({
 			Position = UDim2.fromOffset(8, 8),
@@ -3247,12 +3487,12 @@ function MoreUI:_attachElementMethods(container, content)
 		})
 		applyControlTexture(library, button, {
 			Radius = 10,
-			TextureTransparency = 0.86,
+			TextureTransparency = 0.8,
 		})
 		local displayLabel = makeText({
 			Position = UDim2.fromOffset(12, 0),
 			Size = UDim2.new(1, -42, 1, 0),
-			Text = string.format("%s: %s", options.Title or "Dropdown", tostring(value or "None")),
+			Text = string.format("%s: %s", options.Title or "Dropdown", displayValue()),
 			TextColor3 = theme.Text,
 			TextSize = 14,
 			TextTruncate = Enum.TextTruncate.AtEnd,
@@ -3282,9 +3522,19 @@ function MoreUI:_attachElementMethods(container, content)
 
 		local element = { Instance = row, Value = value }
 		function element:Set(newValue)
-			value = newValue
+			if multi then
+				selected = {}
+				value = {}
+				local newValues = typeof(newValue) == "table" and newValue or {}
+				for _, item in ipairs(newValues) do
+					selected[item] = true
+					table.insert(value, item)
+				end
+			else
+				value = newValue
+			end
 			element.Value = value
-			displayLabel.Text = string.format("%s: %s", options.Title or "Dropdown", tostring(value or "None"))
+			displayLabel.Text = string.format("%s: %s", options.Title or "Dropdown", displayValue())
 			if flag then
 				library.Flags[flag] = value
 			end
@@ -3301,9 +3551,13 @@ function MoreUI:_attachElementMethods(container, content)
 				end
 			end
 			for _, item in ipairs(values) do
+				local title = itemTitle(item)
+				local currentValue = itemValue(item)
+				local desc = itemDesc(item)
+				local height = cardStyle and 58 or 34
 				local optionButton = makeButton({
-					Size = UDim2.new(1, 0, 0, 32),
-					Text = tostring(item),
+					Size = UDim2.new(1, 0, 0, height),
+					Text = "",
 					TextColor3 = theme.Text,
 					BackgroundColor3 = theme.Control,
 					BackgroundTransparency = theme.ControlTransparency,
@@ -3312,23 +3566,105 @@ function MoreUI:_attachElementMethods(container, content)
 				}, { corner(9) })
 				applyControlTexture(library, optionButton, {
 					Radius = 9,
-					TextureTransparency = 0.88,
+					TextureTransparency = cardStyle and 0.82 or 0.86,
 				})
+				local left = 12
+				if typeof(item) == "table" and item.Thumbnail then
+					new("ImageLabel", {
+						Position = UDim2.fromOffset(10, 9),
+						Size = UDim2.fromOffset(40, 40),
+						BackgroundColor3 = theme.AccentSoft,
+						Image = item.Thumbnail,
+						BorderSizePixel = 0,
+						ZIndex = 7,
+						Parent = optionButton,
+					}, { corner(8), stroke(theme.Stroke, 0.28, 1) })
+					left = 60
+				elseif typeof(item) == "table" and item.Icon then
+					createIcon(library, item.Icon, {
+						Parent = optionButton,
+						Position = UDim2.fromOffset(14, cardStyle and 19 or 9),
+						Size = UDim2.fromOffset(16, 16),
+						Color = theme.Accent,
+						ZIndex = 7,
+					})
+					left = 38
+				end
+				makeText({
+					Position = UDim2.fromOffset(left, cardStyle and 8 or 0),
+					Size = UDim2.new(1, multi and -(left + 42) or -(left + 12), 0, cardStyle and 23 or height),
+					Text = title,
+					TextColor3 = theme.Text,
+					TextSize = 13,
+					TextXAlignment = Enum.TextXAlignment.Left,
+					TextTruncate = Enum.TextTruncate.AtEnd,
+					ZIndex = 7,
+					Parent = optionButton,
+				})
+				if cardStyle and desc then
+					makeText({
+						Position = UDim2.fromOffset(left, 30),
+						Size = UDim2.new(1, -(left + 12), 0, 20),
+						Text = tostring(desc),
+						TextColor3 = theme.MutedText,
+						TextSize = 11,
+						TextXAlignment = Enum.TextXAlignment.Left,
+						TextTruncate = Enum.TextTruncate.AtEnd,
+						ZIndex = 7,
+						Parent = optionButton,
+					})
+				end
+				local check
+				if multi then
+					check = new("Frame", {
+						AnchorPoint = Vector2.new(1, 0.5),
+						Position = UDim2.new(1, -12, 0.5, 0),
+						Size = UDim2.fromOffset(18, 18),
+						BackgroundColor3 = selected[currentValue] and theme.Accent or theme.Control,
+						BackgroundTransparency = selected[currentValue] and 0 or 0.24,
+						BorderSizePixel = 0,
+						ZIndex = 7,
+						Parent = optionButton,
+					}, { corner(5), stroke(theme.Stroke, 0.3, 1) })
+				end
 				addButtonMotion(optionButton, theme.Control, theme.SurfaceAlt)
 				optionButton.MouseButton1Click:Connect(function()
-					element:Set(item)
-					expanded = false
-					tween(row, Smooth, { Size = UDim2.new(1, 0, 0, 52) })
+					if multi then
+						selected[currentValue] = not selected[currentValue]
+						local out = {}
+						for _, valueItem in ipairs(values) do
+							local valueKey = itemValue(valueItem)
+							if selected[valueKey] then
+								table.insert(out, valueKey)
+							end
+						end
+						element:Set(out)
+						if check then
+							tween(check, Fast, {
+								BackgroundColor3 = selected[currentValue] and theme.Accent or theme.Control,
+								BackgroundTransparency = selected[currentValue] and 0 or 0.24,
+							})
+						end
+					else
+						element:Set(currentValue)
+						expanded = false
+						tween(row, Smooth, { Size = UDim2.new(1, 0, 0, 52) })
+					end
 				end)
 			end
 			if not keepValue then
-				element:Set(values[1])
+				if multi then
+					element:Set({})
+				else
+					element:Set(itemValue(values[1]))
+				end
 			end
 		end
 		element:Refresh(values, true)
 		button.MouseButton1Click:Connect(function()
 			expanded = not expanded
-			local targetHeight = expanded and (58 + (#values * 38)) or 52
+			local optionHeight = cardStyle and 64 or 40
+			local targetHeight = expanded and (58 + (#values * optionHeight)) or 52
 			tween(row, Smooth, { Size = UDim2.new(1, 0, 0, targetHeight) })
 		end)
 		library:_register(flag, element)
@@ -3337,56 +3673,16 @@ function MoreUI:_attachElementMethods(container, content)
 
 	function container:AddMultiDropdown(options)
 		options = options or {}
-		local values = options.Values or {}
-		local selected = {}
-		for _, item in ipairs(options.Default or {}) do
-			selected[item] = true
-		end
-		local flag = options.Flag
-		local element = container:AddDropdown({
+		return container:AddDropdown({
 			Title = options.Title or "Multi Dropdown",
-			Values = values,
-			Default = "Select",
+			Values = options.Values or options.Options or {},
+			Default = options.Default or {},
+			Flag = options.Flag,
+			Callback = options.Callback,
+			Multi = true,
+			Style = options.Style,
+			Cards = options.Cards,
 		})
-
-		local function getSelectedArray()
-			local out = {}
-			for _, valueItem in ipairs(values) do
-				if selected[valueItem] then
-					table.insert(out, valueItem)
-				end
-			end
-			return out
-		end
-
-		local function updateDisplay(out)
-			local text = #out > 0 and table.concat(out, ", ") or "None"
-			if element.SetDisplay then
-				element:SetDisplay(string.format("%s: %s", options.Title or "Multi Dropdown", text))
-			end
-		end
-
-		function element:Set(newValue)
-			if typeof(newValue) == "table" then
-				selected = {}
-				for _, item in ipairs(newValue) do
-					selected[item] = true
-				end
-			else
-				selected[newValue] = not selected[newValue]
-			end
-			local out = getSelectedArray()
-			element.Value = out
-			updateDisplay(out)
-			if flag then
-				library.Flags[flag] = out
-			end
-			safeCall(options.Callback, out)
-		end
-
-		element:Set(options.Default or {})
-		library:_register(flag, element)
-		return element
 	end
 
 	function container:AddTextbox(options)
@@ -3493,8 +3789,22 @@ function MoreUI:_attachElementMethods(container, content)
 			safeCall(options.Changed, value)
 		end
 		button.MouseButton1Click:Connect(function()
-			listening = true
-			button.Text = "..."
+			if
+				options.MobileMenu ~= false and (library.IsMobile or UserInputService.TouchEnabled or options.ForceMenu)
+			then
+				library:ShowKeybindMenu({
+					Title = options.Title or "Keybind",
+					Current = value,
+					Keys = options.Keys,
+					Callback = function(keyCode)
+						listening = false
+						element:Set(keyCode)
+					end,
+				})
+			else
+				listening = true
+				button.Text = "..."
+			end
 		end)
 		table.insert(
 			library._connections,

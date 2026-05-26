@@ -181,11 +181,12 @@ end)
 - `ShowLoading({ Title, Content })`
 - `Dialog({ Title, Content, Icon, Actions })`
 - `Popup({ Title, Content, Actions })`
+- `ShowKeybindMenu({ Title, Current, Keys, Callback })`
 - `AddCheckbox({ Title, Flag, Default, Callback })`
 - `AddSlider({ Title, Flag, Min, Max, Default, Decimals, Callback })`
 - `AddStepper({ Title, Flag, Min, Max, Step, Default, Callback })`
-- `AddDropdown({ Title, Flag, Values, Default, Callback })`
-- `AddMultiDropdown({ Title, Flag, Values, Default, Callback })`
+- `AddDropdown({ Title, Flag, Values, Default, Multi, Style = "card", Callback })`
+- `AddMultiDropdown({ Title, Flag, Values, Default, Style = "card", Callback })`
 - `AddTextbox({ Title, Flag, Placeholder, Default, SubmitOnly, Callback })`
 - `AddKeybind({ Title, Flag, Default, Changed, Callback })`
 - `AddColorPicker({ Title, Flag, Default, Colors, Height, Callback })`

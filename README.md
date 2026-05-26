@@ -23,6 +23,7 @@ local window = MoreUI:CreateWindow({
 	Subtitle = "Liquid Glass",
 	ToggleKey = Enum.KeyCode.RightShift,
 	TopInset = 72,
+	BackgroundBlurSize = 10,
 	OpenButtonPosition = UDim2.fromOffset(92, 86),
 	OpenIcon = MoreUI.Window11Asset("window"),
 	LibraryIcon = MoreUI.Window11Asset("library-symbol"),
@@ -74,6 +75,8 @@ section:AddToggle({
 - Top-left open button defaults below the Roblox menu area and uses a Windows-style icon.
 - `LibraryIcon`, `OpenIcon`, `MinimizeIcon`, `CloseIcon`, `ToggleOnIcon`, `ToggleOffIcon`, `ToggleOnImage`, `ToggleOffImage`, `StepperPlusIcon`, and `StepperMinusIcon` can each use separate image assets.
 - `MoreUI.Window11Asset(name)` downloads generated UI assets from GitHub and caches them to `{IconHubName}/Asset/Window11/{name}.png` with `writefile`.
+- `BackgroundBlurSize` controls the Roblox `BlurEffect` while the window is open. Set `BackgroundBlur = false` or `Blur = false` to disable it.
+- Main tab switching uses a slide/scale transition with a liquid-glass blur overlay instead of fading every element.
 - `ControlTextureAsset` applies a subtle custom texture across controls. Set `ControlTexture = false` to disable it globally, or pass `Texture = false` on a row/container option to skip it locally.
 - `TexturePath` can still point at a local `getcustomasset` texture as fallback for the panel background.
 - Close/minimize hides the UI so the open button can bring it back.

@@ -5,6 +5,7 @@ local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local HttpService = game:GetService("HttpService")
+local Lighting = game:GetService("Lighting")
 
 local LocalPlayer = Players.LocalPlayer
 
@@ -838,6 +839,50 @@ local function addTitlebarButtonMotion(
 	end)
 end
 
+local function getOrCreateScale(guiObject, name)
+	local existing = guiObject:FindFirstChild(name)
+	if existing and existing:IsA("UIScale") then
+		return existing
+	end
+	return new("UIScale", {
+		Name = name,
+		Scale = 1,
+		Parent = guiObject,
+	})
+end
+
+local function playPageBlur(library)
+	if not library then
+		return
+	end
+
+	local overlay = library.PageBlurOverlay
+	if overlay then
+		local overlayScale = getOrCreateScale(overlay, "PageBlurScale")
+		overlay.Visible = true
+		overlay.BackgroundTransparency = 0.46
+		overlayScale.Scale = 1.035
+		tween(overlay, Smooth, { BackgroundTransparency = 1 })
+		tween(overlayScale, Smooth, { Scale = 1 })
+		task.delay(0.28, function()
+			if overlay.Parent then
+				overlay.Visible = false
+			end
+		end)
+	end
+
+	local blur = library.BackgroundBlur
+	if blur and blur.Parent and library.Open then
+		local baseSize = library._openBlurSize or 8
+		tween(blur, Fast, { Size = baseSize + 4 })
+		task.delay(0.12, function()
+			if blur.Parent and library.Open then
+				tween(blur, Smooth, { Size = baseSize })
+			end
+		end)
+	end
+end
+
 local function animateGuiObject(guiObject, show, delayTime)
 	if not guiObject or not guiObject:IsA("GuiObject") then
 		return
@@ -955,6 +1000,17 @@ function MoreUI:CreateWindow(options)
 	library.ScreenGui = nil
 	library._connections = {}
 	library._options = options
+	library._openBlurSize = options.BlurSize or options.BackgroundBlurSize or 8
+
+	if options.BackgroundBlur ~= false and options.Blur ~= false then
+		local backgroundBlur = new("BlurEffect", {
+			Name = (options.Name or "MoreUILibrary") .. "BackgroundBlur",
+			Enabled = false,
+			Size = 0,
+			Parent = Lighting,
+		})
+		library.BackgroundBlur = backgroundBlur
+	end
 
 	local parent = options.Parent
 	if not parent then
@@ -1067,7 +1123,7 @@ function MoreUI:CreateWindow(options)
 		BackgroundTransparency = 1,
 		Image = "rbxassetid://1316045217",
 		ImageColor3 = library.Theme.Shadow,
-		ImageTransparency = options.Dark and 0.58 or 0.86,
+		ImageTransparency = options.Dark and 0.54 or 0.8,
 		ScaleType = Enum.ScaleType.Slice,
 		SliceCenter = Rect.new(10, 10, 118, 118),
 		ZIndex = 1,
@@ -1079,7 +1135,7 @@ function MoreUI:CreateWindow(options)
 		Name = "SoftShadow",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-		BackgroundTransparency = options.Dark and 0.78 or 0.9,
+		BackgroundTransparency = options.Dark and 0.76 or 0.86,
 		BorderSizePixel = 0,
 		ZIndex = 1,
 		Parent = screenGui,
@@ -1422,22 +1478,43 @@ function MoreUI:CreateWindow(options)
 	local pages = new("Frame", {
 		Name = "Pages",
 		BackgroundTransparency = 1,
+		ClipsDescendants = true,
 		ZIndex = 3,
 		Parent = window,
 	})
 	library.Pages = pages
 
+	local pageBlurOverlay = new("Frame", {
+		Name = "PageBlurOverlay",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = library.Theme.Surface,
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		Visible = false,
+		ZIndex = 12,
+		Parent = pages,
+	}, {
+		corner(library.Theme.Radius),
+	})
+	applyGlass(pageBlurOverlay, library.Theme, library.Theme.Radius, "soft")
+	applyControlTexture(library, pageBlurOverlay, {
+		Radius = library.Theme.Radius,
+		TextureTransparency = 0.88,
+	})
+	pageBlurOverlay.BackgroundTransparency = 1
+	library.PageBlurOverlay = pageBlurOverlay
+
 	local function updateShadow()
 		shadow.AnchorPoint = window.AnchorPoint
 		shadow.Position = window.Position
 		shadow.Size =
-			UDim2.new(window.Size.X.Scale, window.Size.X.Offset + 16, window.Size.Y.Scale, window.Size.Y.Offset + 16)
+			UDim2.new(window.Size.X.Scale, window.Size.X.Offset + 22, window.Size.Y.Scale, window.Size.Y.Offset + 22)
 		softShadow.AnchorPoint = window.AnchorPoint
 		softShadow.Position = UDim2.new(
 			window.Position.X.Scale,
 			window.Position.X.Offset + 3,
 			window.Position.Y.Scale,
-			window.Position.Y.Offset + 5
+			window.Position.Y.Offset + 8
 		)
 		softShadow.Size = window.Size
 	end
@@ -1521,6 +1598,9 @@ function MoreUI:CreateWindow(options)
 		window.Visible = true
 		shadow.Visible = true
 		softShadow.Visible = true
+		if self.BackgroundBlur then
+			self.BackgroundBlur.Enabled = true
+		end
 
 		local scale = window:FindFirstChild("WindowScale")
 		if scale then
@@ -1529,23 +1609,30 @@ function MoreUI:CreateWindow(options)
 		end
 
 		local targetPosition = self.Open and self._openPosition or self._hiddenPosition
-		local targetShadow = self.Open and (options.Dark and 0.58 or 0.86) or 1
-		local targetSoftShadow = self.Open and (options.Dark and 0.78 or 0.9) or 1
+		local targetShadow = self.Open and (options.Dark and 0.54 or 0.8) or 1
+		local targetSoftShadow = self.Open and (options.Dark and 0.76 or 0.86) or 1
+		local targetBlurSize = self.Open and self._openBlurSize or 0
 		if instant then
 			window.Position = targetPosition
 			shadow.Position = targetPosition
 			shadow.ImageTransparency = targetShadow
+			if self.BackgroundBlur then
+				self.BackgroundBlur.Size = targetBlurSize
+			end
 			softShadow.Position = UDim2.new(
 				targetPosition.X.Scale,
 				targetPosition.X.Offset + 3,
 				targetPosition.Y.Scale,
-				targetPosition.Y.Offset + 5
+				targetPosition.Y.Offset + 8
 			)
 			softShadow.BackgroundTransparency = targetSoftShadow
 			if not self.Open then
 				window.Visible = false
 				shadow.Visible = false
 				softShadow.Visible = false
+				if self.BackgroundBlur then
+					self.BackgroundBlur.Enabled = false
+				end
 			end
 		else
 			tween(window, WindowAnim, {
@@ -1561,10 +1648,13 @@ function MoreUI:CreateWindow(options)
 					targetPosition.X.Scale,
 					targetPosition.X.Offset + 3,
 					targetPosition.Y.Scale,
-					targetPosition.Y.Offset + 5
+					targetPosition.Y.Offset + 8
 				),
 				BackgroundTransparency = targetSoftShadow,
 			})
+			if self.BackgroundBlur then
+				tween(self.BackgroundBlur, WindowAnim, { Size = targetBlurSize })
+			end
 		end
 
 		task.delay(0.32, function()
@@ -1572,6 +1662,9 @@ function MoreUI:CreateWindow(options)
 				window.Visible = false
 				shadow.Visible = false
 				softShadow.Visible = false
+				if self.BackgroundBlur then
+					self.BackgroundBlur.Enabled = false
+				end
 			end
 		end)
 	end
@@ -1764,6 +1857,7 @@ function MoreUI:CreateTab(name, icon)
 
 	local page = new("ScrollingFrame", {
 		Name = name .. "Page",
+		Position = UDim2.fromScale(0, 0),
 		Size = UDim2.fromScale(1, 1),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
@@ -1777,23 +1871,41 @@ function MoreUI:CreateTab(name, icon)
 		padding(2),
 		listLayout(10),
 	})
+	getOrCreateScale(page, "PageScale")
 	tab.Page = page
 	setCanvasToContent(page, "Y")
 
 	function tab:Select()
+		if self.Selected then
+			return
+		end
+
+		if self.Library.SelectedTab then
+			playPageBlur(self.Library)
+		end
+
 		for _, other in ipairs(self.Library.Tabs) do
 			if other.Page.Visible and other ~= self then
-				for index, child in ipairs(other.Page:GetChildren()) do
-					if child:IsA("GuiObject") then
-						animateGuiObject(child, false, index * 0.012)
-					end
-				end
-				task.delay(0.2, function()
+				local oldPage = other.Page
+				local oldScale = getOrCreateScale(oldPage, "PageScale")
+				oldPage.ZIndex = 3
+				tween(oldPage, Smooth, {
+					Position = UDim2.fromOffset(0, -18),
+					ScrollBarImageTransparency = 1,
+				})
+				tween(oldScale, Smooth, { Scale = 0.982 })
+				task.delay(0.22, function()
 					if other.Page and not other.Selected then
 						other.Page.Visible = false
+						other.Page.Position = UDim2.fromScale(0, 0)
+						other.Page.ScrollBarImageTransparency = 0
+						local resetScale = other.Page:FindFirstChild("PageScale")
+						if resetScale then
+							resetScale.Scale = 1
+						end
 					end
 				end)
-			else
+			elseif other ~= self then
 				other.Page.Visible = false
 			end
 			other.Selected = false
@@ -1809,22 +1921,23 @@ function MoreUI:CreateTab(name, icon)
 
 		self.Selected = true
 		self.Page.Visible = true
+		self.Page.Position = UDim2.fromOffset(0, 22)
 		self.Page.CanvasPosition = Vector2.new(0, 0)
+		self.Page.ScrollBarImageTransparency = 1
+		self.Page.ZIndex = 4
+		local pageScale = getOrCreateScale(self.Page, "PageScale")
+		pageScale.Scale = 0.986
 		tween(self.Button, Smooth, {
 			BackgroundColor3 = theme.Accent,
 			BackgroundTransparency = 0,
 		})
 		tween(label, Fast, { TextColor3 = theme.AccentText })
 		self.Library.SelectedTab = self
-
-		for index, child in ipairs(self.Page:GetChildren()) do
-			if child:IsA("GuiObject") then
-				if child:GetAttribute("MoreUIBaseTransparency") == nil then
-					child:SetAttribute("MoreUIBaseTransparency", child.BackgroundTransparency)
-				end
-				animateGuiObject(child, true, index * 0.025)
-			end
-		end
+		tween(self.Page, Smooth, {
+			Position = UDim2.fromScale(0, 0),
+			ScrollBarImageTransparency = 0,
+		})
+		tween(pageScale, Smooth, { Scale = 1 })
 	end
 
 	button.MouseButton1Click:Connect(function()
@@ -3480,6 +3593,10 @@ end
 function MoreUI:Destroy()
 	for _, connection in ipairs(self._connections or {}) do
 		connection:Disconnect()
+	end
+	if self.BackgroundBlur then
+		self.BackgroundBlur:Destroy()
+		self.BackgroundBlur = nil
 	end
 	if self.ScreenGui then
 		self.ScreenGui:Destroy()

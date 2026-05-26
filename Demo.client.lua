@@ -25,6 +25,7 @@ local window = MoreUI:CreateWindow({
 	Size = UDim2.fromOffset(660, 500),
 	MobileHeight = 600,
 	TopInset = 72,
+	BackgroundBlurSize = 10,
 	ToggleKey = Enum.KeyCode.RightShift,
 	OpenButtonPosition = UDim2.fromOffset(92, 86),
 	OpenIcon = GeneratedIcons.Window,

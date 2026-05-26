@@ -178,6 +178,9 @@ end)
 - `AddCard({ Title, Content, Icon, Callback })`
 - `AddButton({ Text, Icon, Callback })`
 - `AddToggle({ Title, Flag, Default, ToggleOnImage, ToggleOffImage, Callback })`
+- `ShowLoading({ Title, Content })`
+- `Dialog({ Title, Content, Icon, Actions })`
+- `Popup({ Title, Content, Actions })`
 - `AddCheckbox({ Title, Flag, Default, Callback })`
 - `AddSlider({ Title, Flag, Min, Max, Default, Decimals, Callback })`
 - `AddStepper({ Title, Flag, Min, Max, Step, Default, Callback })`

@@ -789,6 +789,16 @@ local function applyControlTexture(library, frame, options)
 	if not frame or frame:FindFirstChild("ControlTexture") then
 		return nil
 	end
+	if
+		options.AllowLayoutTexture ~= true
+		and (
+			frame:FindFirstChildOfClass("UIListLayout")
+			or frame:FindFirstChildOfClass("UIGridLayout")
+			or frame:FindFirstChildOfClass("UITableLayout")
+		)
+	then
+		return nil
+	end
 
 	local asset = getControlTextureAsset(library)
 	if not asset then
@@ -1255,19 +1265,50 @@ function MoreUI:CreateWindow(options)
 		)
 	end
 	if windowBackgroundAsset then
-		new("ImageLabel", {
+		local windowBackground = new("ImageLabel", {
 			Name = "Window11Background",
-			Size = UDim2.fromScale(1, 1),
+			Position = UDim2.fromScale(-0.07, -0.07),
+			Size = UDim2.fromScale(1.14, 1.14),
 			BackgroundTransparency = 1,
 			Image = windowBackgroundAsset,
-			ImageTransparency = options.WindowBackgroundTransparency or 0.26,
+			ImageTransparency = options.WindowBackgroundTransparency or 0.58,
 			ImageColor3 = options.Dark and Color3.fromRGB(170, 205, 255) or Color3.fromRGB(255, 255, 255),
 			ScaleType = Enum.ScaleType.Crop,
+			Rotation = -2,
 			ZIndex = 2,
 			Parent = animatedBackground,
 		}, {
 			corner(library.Theme.Radius + 2),
 		})
+		library.WindowBackground = windowBackground
+		local sheetAlive = true
+		table.insert(library._connections, {
+			Disconnect = function()
+				sheetAlive = false
+			end,
+		})
+		local sheetForward = false
+		local function playBackgroundSheet()
+			if not sheetAlive or not windowBackground.Parent then
+				return
+			end
+			sheetForward = not sheetForward
+			local targetPosition = sheetForward and UDim2.fromScale(-0.03, -0.09) or UDim2.fromScale(-0.09, -0.04)
+			local targetRotation = sheetForward and 2 or -2
+			local backgroundTween =
+				tween(windowBackground, TweenInfo.new(7.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+					Position = targetPosition,
+					Rotation = targetRotation,
+				})
+			local connection
+			connection = backgroundTween.Completed:Connect(function()
+				if connection then
+					connection:Disconnect()
+				end
+				playBackgroundSheet()
+			end)
+		end
+		playBackgroundSheet()
 	end
 	local animatedGradient = new("UIGradient", {
 		Name = "MovingGradient",
@@ -1574,7 +1615,7 @@ function MoreUI:CreateWindow(options)
 		padding(10),
 		listLayout(8),
 	})
-	applyGlass(tabbar, library.Theme, library.Theme.Radius + 2, "soft")
+	applyGlass(tabbar, library.Theme, library.Theme.Radius + 2, "soft", true)
 	applyControlTexture(library, tabbar, {
 		Radius = library.Theme.Radius + 2,
 		TextureTransparency = 0.88,
@@ -1907,6 +1948,270 @@ function MoreUI:Notify(options)
 			card:Destroy()
 		end
 	end)
+end
+
+function MoreUI:ShowLoading(options)
+	options = options or {}
+	local theme = self.Theme or Theme
+	local parent = self.Window or self.ScreenGui
+	if not parent then
+		return nil
+	end
+
+	local overlay = new("Frame", {
+		Name = "LoadingOverlay",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Color3.fromRGB(8, 10, 14),
+		BackgroundTransparency = 0.86,
+		BorderSizePixel = 0,
+		ZIndex = 50,
+		Parent = parent,
+	})
+
+	local card = new("Frame", {
+		Name = "LoadingCard",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = options.Size or UDim2.fromOffset(286, 118),
+		BackgroundColor3 = theme.Surface,
+		BorderSizePixel = 0,
+		ZIndex = 51,
+		Parent = overlay,
+	}, {
+		corner(16),
+		stroke(theme.Stroke, 0.2, 1),
+	})
+	applyGlass(card, theme, 16, "strong")
+	applyControlTexture(self, card, {
+		Radius = 16,
+		TextureTransparency = 0.88,
+	})
+	local cardScale = new("UIScale", { Scale = 0.96, Parent = card })
+	tween(cardScale, Smooth, { Scale = 1 })
+
+	local spinner = new("Frame", {
+		Name = "Spinner",
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.fromOffset(24, 58),
+		Size = UDim2.fromOffset(38, 38),
+		BackgroundTransparency = 1,
+		ZIndex = 52,
+		Parent = card,
+	})
+	for index = 1, 8 do
+		local angle = math.rad((index - 1) * 45)
+		new("Frame", {
+			Name = "Dot",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromOffset(19 + math.cos(angle) * 15, 19 + math.sin(angle) * 15),
+			Size = UDim2.fromOffset(5, 5),
+			BackgroundColor3 = theme.Accent,
+			BackgroundTransparency = 0.15 + index * 0.07,
+			BorderSizePixel = 0,
+			ZIndex = 53,
+			Parent = spinner,
+		}, { corner(3) })
+	end
+
+	makeText({
+		Name = "LoadingTitle",
+		Position = UDim2.fromOffset(78, 26),
+		Size = UDim2.new(1, -96, 0, 28),
+		Text = options.Title or "Loading",
+		TextColor3 = theme.Text,
+		TextSize = 16,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		FontFace = Font.new("rbxasset://fonts/families/BuilderSans.json", Enum.FontWeight.Bold),
+		ZIndex = 52,
+		Parent = card,
+	})
+	local message = makeText({
+		Name = "LoadingMessage",
+		Position = UDim2.fromOffset(78, 54),
+		Size = UDim2.new(1, -96, 0, 42),
+		Text = options.Content or options.Message or "Please wait...",
+		TextColor3 = theme.MutedText,
+		TextSize = 13,
+		TextWrapped = true,
+		TextYAlignment = Enum.TextYAlignment.Top,
+		ZIndex = 52,
+		Parent = card,
+	})
+
+	local alive = true
+	local function spin()
+		if not alive or not spinner.Parent then
+			return
+		end
+		spinner.Rotation = 0
+		local spinTween = tween(spinner, TweenInfo.new(0.9, Enum.EasingStyle.Linear), { Rotation = 360 })
+		local connection
+		connection = spinTween.Completed:Connect(function()
+			if connection then
+				connection:Disconnect()
+			end
+			spin()
+		end)
+	end
+	spin()
+
+	local loading = { Instance = overlay, Card = card }
+	function loading:SetText(text)
+		message.Text = tostring(text or "")
+	end
+	function loading:Close()
+		alive = false
+		if overlay.Parent then
+			tween(cardScale, Fast, { Scale = 0.96 })
+			tween(overlay, Fast, { BackgroundTransparency = 1 })
+			task.delay(0.14, function()
+				if overlay.Parent then
+					overlay:Destroy()
+				end
+			end)
+		end
+	end
+	return loading
+end
+
+function MoreUI:Dialog(options)
+	options = options or {}
+	local theme = self.Theme or Theme
+	local parent = self.Window or self.ScreenGui
+	if not parent then
+		return nil
+	end
+
+	local overlay = new("Frame", {
+		Name = "DialogOverlay",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Color3.fromRGB(8, 10, 14),
+		BackgroundTransparency = options.OverlayTransparency or 0.84,
+		BorderSizePixel = 0,
+		ZIndex = 55,
+		Parent = parent,
+	})
+	local card = new("Frame", {
+		Name = "Dialog",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = options.Size or UDim2.fromOffset(360, 186),
+		BackgroundColor3 = theme.Surface,
+		BorderSizePixel = 0,
+		ZIndex = 56,
+		Parent = overlay,
+	}, {
+		corner(16),
+		stroke(theme.Stroke, 0.18, 1),
+	})
+	applyGlass(card, theme, 16, "strong")
+	applyControlTexture(self, card, {
+		Radius = 16,
+		TextureTransparency = 0.88,
+	})
+	local scale = new("UIScale", { Scale = 0.96, Parent = card })
+	tween(scale, Smooth, { Scale = 1 })
+
+	if options.Icon then
+		createIcon(self, options.Icon, {
+			Parent = card,
+			Position = UDim2.fromOffset(18, 20),
+			Size = UDim2.fromOffset(22, 22),
+			Color = theme.Accent,
+			ZIndex = 57,
+		})
+	end
+	local left = options.Icon and 50 or 20
+	makeText({
+		Name = "DialogTitle",
+		Position = UDim2.fromOffset(left, 16),
+		Size = UDim2.new(1, -left - 20, 0, 28),
+		Text = options.Title or "Dialog",
+		TextColor3 = theme.Text,
+		TextSize = 17,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		FontFace = Font.new("rbxasset://fonts/families/BuilderSans.json", Enum.FontWeight.Bold),
+		ZIndex = 57,
+		Parent = card,
+	})
+	makeText({
+		Name = "DialogContent",
+		Position = UDim2.fromOffset(20, 54),
+		Size = UDim2.new(1, -40, 0, 70),
+		Text = options.Content or options.Message or "",
+		TextColor3 = theme.MutedText,
+		TextSize = 13,
+		TextWrapped = true,
+		TextYAlignment = Enum.TextYAlignment.Top,
+		ZIndex = 57,
+		Parent = card,
+	})
+
+	local dialog = { Instance = overlay, Card = card }
+	function dialog:Close()
+		if overlay.Parent then
+			tween(scale, Fast, { Scale = 0.96 })
+			tween(overlay, Fast, { BackgroundTransparency = 1 })
+			task.delay(0.14, function()
+				if overlay.Parent then
+					overlay:Destroy()
+				end
+			end)
+		end
+	end
+
+	local actions = options.Actions or options.Buttons
+	if not actions or #actions == 0 then
+		actions = {
+			{
+				Text = options.ConfirmText or "OK",
+				Accent = true,
+				Callback = options.Callback,
+			},
+		}
+	end
+	local buttonWidth = math.max(86, math.floor((320 - (#actions - 1) * 8) / #actions))
+	for index, action in ipairs(actions) do
+		local button = makeButton({
+			Name = "Action" .. index,
+			AnchorPoint = Vector2.new(1, 1),
+			Position = UDim2.new(1, -20 - (#actions - index) * (buttonWidth + 8), 1, -16),
+			Size = UDim2.fromOffset(buttonWidth, 34),
+			Text = tostring(action.Text or action.Title or "OK"),
+			TextColor3 = action.Accent == false and theme.Text or theme.AccentText,
+			TextSize = 13,
+			BackgroundColor3 = action.Accent == false and theme.Control or theme.Accent,
+			BackgroundTransparency = action.Accent == false and theme.ControlTransparency or 0,
+			ZIndex = 57,
+			Parent = card,
+		}, {
+			corner(9),
+			stroke(theme.Stroke, action.Accent == false and 0.26 or 1, 1),
+		})
+		applyControlTexture(self, button, {
+			Radius = 9,
+			TextureTransparency = 0.9,
+		})
+		addButtonMotion(
+			button,
+			button.BackgroundColor3,
+			action.Accent == false and theme.SurfaceAlt or theme.AccentHover
+		)
+		button.MouseButton1Click:Connect(function()
+			safeCall(action.Callback or action.OnClick, dialog)
+			if action.Close ~= false then
+				dialog:Close()
+			end
+		end)
+	end
+	return dialog
+end
+
+function MoreUI:Popup(options)
+	options = options or {}
+	options.Size = options.Size or UDim2.fromOffset(330, 168)
+	options.Title = options.Title or "Popup"
+	return self:Dialog(options)
 end
 
 function MoreUI:CreateTab(name, icon)
@@ -3505,6 +3810,7 @@ function MoreUI:_attachElementMethods(container, content)
 			Glass = true,
 			Radius = 14,
 			NoReflection = true,
+			Texture = false,
 		})
 		holder.Size = UDim2.new(1, 0, 0, 0)
 		holder.AutomaticSize = Enum.AutomaticSize.Y

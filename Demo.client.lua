@@ -41,7 +41,7 @@ local window = MoreUI:CreateWindow({
 	IconHubName = "More UI Library",
 	Window11Icons = true,
 	WindowBackgroundAsset = MoreUI.Window11Asset("window11-background"),
-	WindowBackgroundTransparency = 0.24,
+	WindowBackgroundTransparency = 0.58,
 	ControlTextureAsset = MoreUI.Window11Asset("control-texture"),
 	ControlTextureTransparency = 0.84,
 	TextureAsset = MoreUI.Window11Asset("moreui-liquid-texture"),
@@ -107,6 +107,38 @@ overview:AddButton({
 			Content = "Notification system is working.",
 			Duration = 3,
 			Icon = "lucide:bell",
+		})
+	end,
+})
+
+overview:AddButton({
+	Text = "Show Loading",
+	Icon = "lucide:sparkles",
+	Callback = function()
+		local loading = window:ShowLoading({
+			Title = "Preparing",
+			Content = "Windows 11 style loading overlay.",
+		})
+		task.delay(1.4, function()
+			if loading then
+				loading:Close()
+			end
+		end)
+	end,
+})
+
+overview:AddButton({
+	Text = "Open Dialog",
+	Icon = "lucide:folder",
+	Callback = function()
+		window:Dialog({
+			Title = "Dialog",
+			Content = "This is a liquid glass dialog with Window 11 controls.",
+			Icon = "lucide:folder",
+			Actions = {
+				{ Text = "Cancel", Accent = false },
+				{ Text = "OK", Accent = true },
+			},
 		})
 	end,
 })

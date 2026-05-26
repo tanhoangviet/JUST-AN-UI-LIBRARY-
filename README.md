@@ -8,6 +8,7 @@ A Roblox Luau UI library inspired by Windows 11 and liquid glass/mobile bottom-s
 - `Demo.client.lua` - LocalScript example using tabs, cards, group boxes, group tabs, and all major controls.
 - `Assets/moreui-liquid-texture.png` - generated Windows-style texture used by `TexturePath`.
 - `Assets/control-texture.png` - generated subtle control texture for buttons, dropdowns, inputs, color pickers, and menus.
+- `Assets/slider-texture.png`, `Assets/dropdown-texture.png`, `Assets/button-link-texture.png` - generated special textures for upgraded controls.
 - `Assets/window11-background.png` - generated Windows 11 style background used behind the liquid glass shell.
 - `Assets/generated-icon-sheet-v1.png` - generated source sheet for custom UI icons.
 - `Assets/GeneratedIcons/*.png` - generated PNG assets for the window button, library mark, controls, toggles, steppers, and Window11 icon set.
@@ -177,6 +178,8 @@ end)
 - `AddParagraph({ Title, Content, Icon })`
 - `AddCard({ Title, Content, Icon, Callback })`
 - `AddButton({ Text, Icon, Callback })`
+- `AddHighlightButton({ Text, Icon, Callback })`
+- `AddButtonLink({ Buttons = { { Text, Icon, Callback }, ... } })`
 - `AddToggle({ Title, Flag, Default, ToggleOnImage, ToggleOffImage, Callback })`
 - `ShowLoading({ Title, Content })`
 - `Dialog({ Title, Content, Icon, Actions })`

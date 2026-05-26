@@ -19,8 +19,11 @@ MoreUI.IconUrlTemplates = {
 MoreUI.Window11AssetBaseUrl =
 	"https://raw.githubusercontent.com/tanhoangviet/JUST-AN-UI-LIBRARY-/main/Assets/GeneratedIcons/{name}.png"
 MoreUI.Window11AssetUrls = {
+	["button-link-texture"] = "https://raw.githubusercontent.com/tanhoangviet/JUST-AN-UI-LIBRARY-/main/Assets/button-link-texture.png",
 	["control-texture"] = "https://raw.githubusercontent.com/tanhoangviet/JUST-AN-UI-LIBRARY-/main/Assets/control-texture.png",
+	["dropdown-texture"] = "https://raw.githubusercontent.com/tanhoangviet/JUST-AN-UI-LIBRARY-/main/Assets/dropdown-texture.png",
 	["moreui-liquid-texture"] = "https://raw.githubusercontent.com/tanhoangviet/JUST-AN-UI-LIBRARY-/main/Assets/moreui-liquid-texture.png",
+	["slider-texture"] = "https://raw.githubusercontent.com/tanhoangviet/JUST-AN-UI-LIBRARY-/main/Assets/slider-texture.png",
 	["window11-background"] = "https://raw.githubusercontent.com/tanhoangviet/JUST-AN-UI-LIBRARY-/main/Assets/window11-background.png",
 }
 MoreUI.Window11Icons = {
@@ -459,8 +462,17 @@ local function getWindow11AssetFallbackPath(assetName)
 	if cleanName == "control-texture" then
 		return "Assets/control-texture.png"
 	end
+	if cleanName == "button-link-texture" then
+		return "Assets/button-link-texture.png"
+	end
+	if cleanName == "dropdown-texture" then
+		return "Assets/dropdown-texture.png"
+	end
 	if cleanName == "moreui-liquid-texture" then
 		return "Assets/moreui-liquid-texture.png"
+	end
+	if cleanName == "slider-texture" then
+		return "Assets/slider-texture.png"
 	end
 	if cleanName == "window11-background" then
 		return "Assets/window11-background.png"
@@ -817,6 +829,36 @@ local function applyControlTexture(library, frame, options)
 		ImageTransparency = options.TextureTransparency
 			or (library and library._options and library._options.ControlTextureTransparency)
 			or ((library and library._options and library._options.Dark) and 0.9 or 0.84),
+		ScaleType = options.ScaleType or Enum.ScaleType.Crop,
+		ZIndex = options.ZIndex or (frame.ZIndex or 1),
+		Parent = frame,
+	}, {
+		corner(options.Radius or theme.Radius),
+	})
+	return texture
+end
+
+local function applyWindowAssetTexture(library, frame, assetName, options)
+	options = options or {}
+	if not frame or options.Texture == false then
+		return nil
+	end
+	local textureName = assetName or options.AssetName
+	if not textureName then
+		return nil
+	end
+	local asset = getWindow11Asset(library, textureName, options.FallbackPath)
+	if not asset then
+		return nil
+	end
+	local theme = (library and library.Theme) or Theme
+	local texture = new("ImageLabel", {
+		Name = options.Name or "WindowAssetTexture",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Image = asset,
+		ImageTransparency = options.Transparency or 0.84,
+		ImageColor3 = options.Color or Color3.fromRGB(255, 255, 255),
 		ScaleType = options.ScaleType or Enum.ScaleType.Crop,
 		ZIndex = options.ZIndex or (frame.ZIndex or 1),
 		Parent = frame,
@@ -1268,48 +1310,18 @@ function MoreUI:CreateWindow(options)
 	if windowBackgroundAsset then
 		local windowBackground = new("ImageLabel", {
 			Name = "Window11Background",
-			Position = UDim2.fromScale(-0.07, -0.07),
-			Size = UDim2.fromScale(1.14, 1.14),
+			Size = UDim2.fromScale(1, 1),
 			BackgroundTransparency = 1,
 			Image = windowBackgroundAsset,
-			ImageTransparency = options.WindowBackgroundTransparency or 0.58,
+			ImageTransparency = options.WindowBackgroundTransparency or 0.64,
 			ImageColor3 = options.Dark and Color3.fromRGB(170, 205, 255) or Color3.fromRGB(255, 255, 255),
 			ScaleType = Enum.ScaleType.Crop,
-			Rotation = -2,
 			ZIndex = 2,
 			Parent = animatedBackground,
 		}, {
 			corner(library.Theme.Radius + 2),
 		})
 		library.WindowBackground = windowBackground
-		local sheetAlive = true
-		table.insert(library._connections, {
-			Disconnect = function()
-				sheetAlive = false
-			end,
-		})
-		local sheetForward = false
-		local function playBackgroundSheet()
-			if not sheetAlive or not windowBackground.Parent then
-				return
-			end
-			sheetForward = not sheetForward
-			local targetPosition = sheetForward and UDim2.fromScale(-0.03, -0.09) or UDim2.fromScale(-0.09, -0.04)
-			local targetRotation = sheetForward and 2 or -2
-			local backgroundTween =
-				tween(windowBackground, TweenInfo.new(7.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
-					Position = targetPosition,
-					Rotation = targetRotation,
-				})
-			local connection
-			connection = backgroundTween.Completed:Connect(function()
-				if connection then
-					connection:Disconnect()
-				end
-				playBackgroundSheet()
-			end)
-		end
-		playBackgroundSheet()
 	end
 	local animatedGradient = new("UIGradient", {
 		Name = "MovingGradient",
@@ -2541,6 +2553,14 @@ function MoreUI:CreateTab(name, icon)
 		return self:CreateSection(options.Section or "Actions"):AddButton(options)
 	end
 
+	function tab:AddHighlightButton(options)
+		return self:CreateSection(options.Section or "Actions"):AddHighlightButton(options)
+	end
+
+	function tab:AddButtonLink(options)
+		return self:CreateSection(options.Section or "Actions"):AddButtonLink(options)
+	end
+
 	function tab:AddToggle(options)
 		return self:CreateSection(options.Section or "Toggles"):AddToggle(options)
 	end
@@ -2793,6 +2813,10 @@ function MoreUI:_attachElementMethods(container, content)
 			Radius = 11,
 			TextureTransparency = 0.9,
 		})
+		applyWindowAssetTexture(library, button, options.TextureAsset or "button-link-texture", {
+			Radius = 11,
+			Transparency = options.TextureTransparency or 0.88,
+		})
 		if options.Icon then
 			createIcon(library, options.Icon, {
 				Parent = button,
@@ -2818,6 +2842,95 @@ function MoreUI:_attachElementMethods(container, content)
 			safeCall(options.Callback)
 		end)
 		return { Instance = row, Button = button }
+	end
+
+	function container:AddHighlightButton(options)
+		options = options or {}
+		options.Color = options.Color or theme.Accent
+		options.Height = options.Height or 52
+		local element = container:AddButton(options)
+		new("Frame", {
+			Position = UDim2.fromOffset(8, 11),
+			Size = UDim2.new(0, 3, 1, -22),
+			BackgroundColor3 = options.HighlightColor or Color3.fromRGB(255, 255, 255),
+			BackgroundTransparency = 0.18,
+			BorderSizePixel = 0,
+			ZIndex = 7,
+			Parent = element.Button,
+		}, { corner(2) })
+		return element
+	end
+
+	function container:AddButtonLink(options)
+		options = options or {}
+		local buttons = options.Buttons or options.Items or {}
+		local buttonHeight = options.ButtonHeight or 40
+		local holder = library:_rowBase(content, options.Height or (#buttons * buttonHeight + 12), {
+			Transparency = 1,
+			Texture = false,
+		})
+		holder.ClipsDescendants = true
+		local stack = new("Frame", {
+			Position = UDim2.fromOffset(6, 6),
+			Size = UDim2.new(1, -12, 1, -12),
+			BackgroundTransparency = 1,
+			ZIndex = 5,
+			Parent = holder,
+		}, { listLayout(0) })
+		local created = { Instance = holder, Buttons = {} }
+		for index, item in ipairs(buttons) do
+			local first = index == 1
+			local last = index == #buttons
+			local radius = (#buttons == 1 or first or last) and 10 or 0
+			local button = makeButton({
+				Size = UDim2.new(1, 0, 0, buttonHeight),
+				Text = "",
+				BackgroundColor3 = item.Color or options.Color or theme.Control,
+				BackgroundTransparency = item.Color and 0 or theme.ControlTransparency,
+				TextColor3 = item.Color and theme.AccentText or theme.Text,
+				BorderSizePixel = 0,
+				ZIndex = 6,
+				Parent = stack,
+			}, {
+				corner(radius),
+				stroke(theme.Stroke, 0.28, 1),
+			})
+			applyWindowAssetTexture(
+				library,
+				button,
+				item.TextureAsset or options.TextureAsset or "button-link-texture",
+				{
+					Radius = radius,
+					Transparency = item.TextureTransparency or options.TextureTransparency or 0.86,
+				}
+			)
+			if item.Icon then
+				createIcon(library, item.Icon, {
+					Parent = button,
+					Position = UDim2.fromOffset(14, math.floor((buttonHeight - 18) / 2)),
+					Size = UDim2.fromOffset(18, 18),
+					Color = item.Color and theme.AccentText or theme.Accent,
+					ZIndex = 7,
+				})
+			end
+			makeText({
+				Position = item.Icon and UDim2.fromOffset(42, 0) or UDim2.fromOffset(14, 0),
+				Size = item.Icon and UDim2.new(1, -54, 1, 0) or UDim2.new(1, -28, 1, 0),
+				Text = item.Text or item.Title or ("Button " .. index),
+				TextColor3 = item.Color and theme.AccentText or theme.Text,
+				TextSize = 14,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				TextTruncate = Enum.TextTruncate.AtEnd,
+				ZIndex = 7,
+				Parent = button,
+			})
+			addButtonMotion(button, button.BackgroundColor3, item.HoverColor or options.HoverColor or theme.SurfaceAlt)
+			button.MouseButton1Click:Connect(function()
+				safeCall(item.Callback or options.Callback, item, index)
+			end)
+			table.insert(created.Buttons, button)
+		end
+		return created
 	end
 
 	function container:AddCard(options)
@@ -3181,6 +3294,10 @@ function MoreUI:_attachElementMethods(container, content)
 			Radius = 4,
 			TextureTransparency = 0.92,
 		})
+		applyWindowAssetTexture(library, rail, options.TextureAsset or "slider-texture", {
+			Radius = 4,
+			Transparency = options.RailTextureTransparency or 0.82,
+		})
 		local fill = new("Frame", {
 			Size = UDim2.fromScale((value - min) / (max - min), 1),
 			BackgroundColor3 = theme.AccentHover,
@@ -3203,6 +3320,10 @@ function MoreUI:_attachElementMethods(container, content)
 		applyControlTexture(library, fill, {
 			Radius = 4,
 			TextureTransparency = 0.88,
+		})
+		applyWindowAssetTexture(library, fill, options.TextureAsset or "slider-texture", {
+			Radius = 4,
+			Transparency = options.FillTextureTransparency or 0.78,
 		})
 		local sliderGradient = fill:FindFirstChild("SliderSheet")
 		local sliderAlive = true
@@ -3257,6 +3378,10 @@ function MoreUI:_attachElementMethods(container, content)
 		applyControlTexture(library, thumb, {
 			Radius = 11,
 			TextureTransparency = 0.86,
+		})
+		applyWindowAssetTexture(library, thumb, options.TextureAsset or "slider-texture", {
+			Radius = 11,
+			Transparency = options.KnobTextureTransparency or 0.84,
 		})
 
 		local element = { Instance = row, Value = value }
@@ -3489,6 +3614,10 @@ function MoreUI:_attachElementMethods(container, content)
 			Radius = 10,
 			TextureTransparency = 0.8,
 		})
+		applyWindowAssetTexture(library, button, options.TextureAsset or "dropdown-texture", {
+			Radius = 10,
+			Transparency = options.TextureTransparency or 0.8,
+		})
 		local displayLabel = makeText({
 			Position = UDim2.fromOffset(12, 0),
 			Size = UDim2.new(1, -42, 1, 0),
@@ -3567,6 +3696,10 @@ function MoreUI:_attachElementMethods(container, content)
 				applyControlTexture(library, optionButton, {
 					Radius = 9,
 					TextureTransparency = cardStyle and 0.82 or 0.86,
+				})
+				applyWindowAssetTexture(library, optionButton, options.TextureAsset or "dropdown-texture", {
+					Radius = 9,
+					Transparency = cardStyle and 0.78 or 0.84,
 				})
 				local left = 12
 				if typeof(item) == "table" and item.Thumbnail then

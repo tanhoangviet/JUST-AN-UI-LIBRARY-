@@ -7,6 +7,7 @@ A Roblox Luau UI library inspired by Windows 11 and liquid glass/mobile bottom-s
 - `MoreUILibrary.lua` - reusable library module.
 - `Demo.client.lua` - LocalScript example using tabs, cards, group boxes, group tabs, and all major controls.
 - `Assets/moreui-liquid-texture.png` - generated Windows-style texture used by `TexturePath`.
+- `Assets/control-texture.png` - generated subtle control texture for buttons, dropdowns, inputs, color pickers, and menus.
 - `Assets/generated-icon-sheet-v1.png` - generated source sheet for custom UI icons.
 - `Assets/GeneratedIcons/*.png` - generated PNG assets for the window button, library mark, controls, toggles, and steppers.
 
@@ -34,6 +35,8 @@ local window = MoreUI:CreateWindow({
 	StepperPlusIcon = MoreUI.Window11Asset("plus-symbol"),
 	StepperMinusIcon = MoreUI.Window11Asset("minus-symbol"),
 	IconHubName = "My Hub",
+	ControlTextureAsset = MoreUI.Window11Asset("control-texture"),
+	ControlTextureTransparency = 0.84,
 	TextureAsset = MoreUI.Window11Asset("moreui-liquid-texture"),
 	TexturePath = "Assets/moreui-liquid-texture.png",
 	TextureTransparency = 0.72,
@@ -71,6 +74,7 @@ section:AddToggle({
 - Top-left open button defaults below the Roblox menu area and uses a Windows-style icon.
 - `LibraryIcon`, `OpenIcon`, `MinimizeIcon`, `CloseIcon`, `ToggleOnIcon`, `ToggleOffIcon`, `ToggleOnImage`, `ToggleOffImage`, `StepperPlusIcon`, and `StepperMinusIcon` can each use separate image assets.
 - `MoreUI.Window11Asset(name)` downloads generated UI assets from GitHub and caches them to `{IconHubName}/Asset/Window11/{name}.png` with `writefile`.
+- `ControlTextureAsset` applies a subtle custom texture across controls. Set `ControlTexture = false` to disable it globally, or pass `Texture = false` on a row/container option to skip it locally.
 - `TexturePath` can still point at a local `getcustomasset` texture as fallback for the panel background.
 - Close/minimize hides the UI so the open button can bring it back.
 - `ToggleKey` calls `window:Toggle()` instead of disabling the whole `ScreenGui`.
@@ -94,11 +98,13 @@ For generated Windows 11 PNGs hosted on GitHub, use:
 ```lua
 OpenIcon = MoreUI.Window11Asset("window")
 LibraryIcon = MoreUI.Window11Asset("library-symbol")
+ControlTextureAsset = MoreUI.Window11Asset("control-texture")
 ```
 
 For full toggle-switch image assets, use:
 
 ```lua
+ToggleStyle = "image"
 ToggleOnImage = MoreUI.Window11Asset("toggle-switch-on")
 ToggleOffImage = MoreUI.Window11Asset("toggle-switch-off")
 ```

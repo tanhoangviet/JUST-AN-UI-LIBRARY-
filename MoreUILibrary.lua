@@ -18,6 +18,7 @@ MoreUI.IconUrlTemplates = {
 MoreUI.Window11AssetBaseUrl =
 	"https://raw.githubusercontent.com/tanhoangviet/JUST-AN-UI-LIBRARY-/main/Assets/GeneratedIcons/{name}.png"
 MoreUI.Window11AssetUrls = {
+	["control-texture"] = "https://raw.githubusercontent.com/tanhoangviet/JUST-AN-UI-LIBRARY-/main/Assets/control-texture.png",
 	["moreui-liquid-texture"] = "https://raw.githubusercontent.com/tanhoangviet/JUST-AN-UI-LIBRARY-/main/Assets/moreui-liquid-texture.png",
 }
 
@@ -402,6 +403,9 @@ end
 
 local function getWindow11AssetFallbackPath(assetName)
 	local cleanName = stripPngExtension(tostring(assetName or ""))
+	if cleanName == "control-texture" then
+		return "Assets/control-texture.png"
+	end
 	if cleanName == "moreui-liquid-texture" then
 		return "Assets/moreui-liquid-texture.png"
 	end
@@ -689,6 +693,58 @@ local function applyGlass(frame, theme, radius, strength, noReflection)
 	return gradient, reflection
 end
 
+local function getControlTextureAsset(library)
+	if not library then
+		return nil
+	end
+	local options = library._options or {}
+	if options.ControlTexture == false or options.ControlTextureAsset == false then
+		return nil
+	end
+	if library.ControlTextureAsset ~= nil then
+		return library.ControlTextureAsset ~= false and library.ControlTextureAsset or nil
+	end
+
+	local asset = getWindow11Asset(library, options.ControlTextureAsset or options.ControlTexture or "control-texture")
+	library.ControlTextureAsset = asset or false
+	return asset
+end
+
+local function applyControlTexture(library, frame, options)
+	options = options or {}
+	if options.Texture == false or options.ControlTexture == false then
+		return nil
+	end
+	if not frame or frame:FindFirstChild("ControlTexture") then
+		return nil
+	end
+
+	local asset = getControlTextureAsset(library)
+	if not asset then
+		return nil
+	end
+
+	local theme = (library and library.Theme) or Theme
+	local texture = new("ImageLabel", {
+		Name = "ControlTexture",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Image = asset,
+		ImageColor3 = options.TextureColor
+			or (library and library._options and library._options.ControlTextureColor)
+			or Color3.fromRGB(255, 255, 255),
+		ImageTransparency = options.TextureTransparency
+			or (library and library._options and library._options.ControlTextureTransparency)
+			or ((library and library._options and library._options.Dark) and 0.9 or 0.84),
+		ScaleType = options.ScaleType or Enum.ScaleType.Crop,
+		ZIndex = options.ZIndex or (frame.ZIndex or 1),
+		Parent = frame,
+	}, {
+		corner(options.Radius or theme.Radius),
+	})
+	return texture
+end
+
 local function setCanvasToContent(scroller, axis)
 	local layout = scroller:FindFirstChildOfClass("UIListLayout")
 	if not layout then
@@ -737,6 +793,48 @@ local function addButtonMotion(button, normalColor, hoverColor, pressColor)
 		if hoverColor then
 			tween(button, Fast, { BackgroundColor3 = hoverColor })
 		end
+	end)
+end
+
+local function addTitlebarButtonMotion(
+	button,
+	icon,
+	normalColor,
+	hoverColor,
+	pressColor,
+	normalIconColor,
+	hoverIconColor
+)
+	local normalTransparency = button.BackgroundTransparency
+	button.MouseEnter:Connect(function()
+		tween(button, Fast, {
+			BackgroundColor3 = hoverColor,
+			BackgroundTransparency = 0,
+		})
+		if icon then
+			tween(icon, Fast, { ImageColor3 = hoverIconColor or normalIconColor })
+		end
+	end)
+	button.MouseLeave:Connect(function()
+		tween(button, Fast, {
+			BackgroundColor3 = normalColor,
+			BackgroundTransparency = normalTransparency,
+		})
+		if icon then
+			tween(icon, Fast, { ImageColor3 = normalIconColor })
+		end
+	end)
+	button.MouseButton1Down:Connect(function()
+		tween(button, Fast, {
+			BackgroundColor3 = pressColor or hoverColor,
+			BackgroundTransparency = 0,
+		})
+	end)
+	button.MouseButton1Up:Connect(function()
+		tween(button, Fast, {
+			BackgroundColor3 = hoverColor,
+			BackgroundTransparency = 0,
+		})
 	end)
 end
 
@@ -936,6 +1034,10 @@ function MoreUI:CreateWindow(options)
 		corner(14),
 		stroke(Color3.fromRGB(255, 255, 255), 0.78, 1),
 	})
+	applyControlTexture(library, openButton, {
+		Radius = 14,
+		TextureTransparency = 0.9,
+	})
 	local openIconName = options.OpenIcon or "lucide:panel-top"
 	if options.OpenIcon == nil or options.OpenIcon == "window" or options.OpenIcon == "windows" then
 		createWindowLogo({
@@ -1106,6 +1208,10 @@ function MoreUI:CreateWindow(options)
 		}),
 		stroke(library.Theme.Stroke, 0.26, 1),
 	})
+	applyControlTexture(library, topbar, {
+		Radius = library.Theme.Radius + 2,
+		TextureTransparency = 0.9,
+	})
 	library.Topbar = topbar
 
 	local titleOffset = options.LibraryIcon and 48 or 18
@@ -1138,6 +1244,7 @@ function MoreUI:CreateWindow(options)
 		TextSize = 16,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		FontFace = Font.new("rbxasset://fonts/families/BuilderSans.json", Enum.FontWeight.Bold),
+		ZIndex = 5,
 		Parent = topbar,
 	})
 
@@ -1149,6 +1256,7 @@ function MoreUI:CreateWindow(options)
 		TextColor3 = library.Theme.MutedText,
 		TextSize = 11,
 		TextTruncate = Enum.TextTruncate.AtEnd,
+		ZIndex = 5,
 		Parent = topbar,
 	})
 
@@ -1159,7 +1267,7 @@ function MoreUI:CreateWindow(options)
 	local userCard = new("Frame", {
 		Name = "UserCard",
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -116, 0, 9),
+		Position = UDim2.new(1, -108, 0, 9),
 		Size = UDim2.fromOffset(148, 40),
 		BackgroundColor3 = library.Theme.Control,
 		BackgroundTransparency = library.Theme.ControlTransparency,
@@ -1169,6 +1277,10 @@ function MoreUI:CreateWindow(options)
 	}, {
 		corner(library.Theme.Radius),
 		stroke(library.Theme.Stroke, 0.26, 1),
+	})
+	applyControlTexture(library, userCard, {
+		Radius = library.Theme.Radius,
+		TextureTransparency = 0.88,
 	})
 	library.UserCard = userCard
 
@@ -1214,27 +1326,31 @@ function MoreUI:CreateWindow(options)
 	local controlRow = new("Frame", {
 		Name = "WindowControls",
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -12, 0, 12),
-		Size = UDim2.fromOffset(104, 46),
+		Position = UDim2.new(1, 0, 0, 0),
+		Size = UDim2.fromOffset(96, 48),
 		BackgroundTransparency = 1,
 		ZIndex = 5,
 		Parent = topbar,
 	}, {
-		listLayout(8, true),
+		listLayout(0, true),
 	})
 
 	local minimize = makeButton({
 		Name = "Minimize",
-		Size = UDim2.fromOffset(48, 46),
+		Size = UDim2.fromOffset(48, 48),
 		Text = "",
 		TextSize = 20,
 		TextColor3 = library.Theme.Text,
-		BackgroundColor3 = library.Theme.Control,
-		BackgroundTransparency = library.Theme.ControlTransparency,
+		BackgroundColor3 = library.Theme.SurfaceAlt,
+		BackgroundTransparency = 1,
 		ZIndex = 5,
 		Parent = controlRow,
-	}, { corner(library.Theme.Radius), stroke(library.Theme.Stroke, 0.18, 1) })
-	createIcon(library, options.MinimizeIcon or "lucide:minus", {
+	})
+	applyControlTexture(library, minimize, {
+		Radius = 2,
+		TextureTransparency = 0.92,
+	})
+	local minimizeIcon = createIcon(library, options.MinimizeIcon or "lucide:minus", {
 		Parent = minimize,
 		Position = UDim2.fromScale(0.5, 0.5),
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -1242,20 +1358,32 @@ function MoreUI:CreateWindow(options)
 		Color = library.Theme.Text,
 		ZIndex = 6,
 	})
-	addButtonMotion(minimize, library.Theme.Control, library.Theme.SurfaceAlt, library.Theme.Stroke)
+	addTitlebarButtonMotion(
+		minimize,
+		minimizeIcon,
+		library.Theme.SurfaceAlt,
+		library.Theme.Stroke,
+		library.Theme.StrokeStrong,
+		library.Theme.Text,
+		library.Theme.Text
+	)
 
 	local close = makeButton({
 		Name = "Close",
-		Size = UDim2.fromOffset(48, 46),
+		Size = UDim2.fromOffset(48, 48),
 		Text = "",
 		TextSize = 16,
 		TextColor3 = library.Theme.Text,
-		BackgroundColor3 = library.Theme.Control,
-		BackgroundTransparency = library.Theme.ControlTransparency,
+		BackgroundColor3 = library.Theme.SurfaceAlt,
+		BackgroundTransparency = 1,
 		ZIndex = 5,
 		Parent = controlRow,
-	}, { corner(library.Theme.Radius), stroke(library.Theme.Stroke, 0.18, 1) })
-	createIcon(library, options.CloseIcon or "lucide:x", {
+	})
+	applyControlTexture(library, close, {
+		Radius = 2,
+		TextureTransparency = 0.92,
+	})
+	local closeIcon = createIcon(library, options.CloseIcon or "lucide:x", {
 		Parent = close,
 		Position = UDim2.fromScale(0.5, 0.5),
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -1263,7 +1391,15 @@ function MoreUI:CreateWindow(options)
 		Color = library.Theme.Text,
 		ZIndex = 6,
 	})
-	addButtonMotion(close, library.Theme.Control, library.Theme.SurfaceAlt, library.Theme.Danger)
+	addTitlebarButtonMotion(
+		close,
+		closeIcon,
+		library.Theme.SurfaceAlt,
+		library.Theme.Danger,
+		Color3.fromRGB(170, 30, 24),
+		library.Theme.Text,
+		Color3.fromRGB(255, 255, 255)
+	)
 
 	local tabbar = new("ScrollingFrame", {
 		Name = "Tabbar",
@@ -1335,10 +1471,10 @@ function MoreUI:CreateWindow(options)
 			userCard.Visible = false
 			titleLabel.Size = UDim2.new(1, -(titleOffset + 110), 0, 25)
 			subtitleLabel.Size = UDim2.new(1, -(titleOffset + 110), 0, 20)
-			controlRow.Position = UDim2.new(1, -10, 0, 9)
-			controlRow.Size = UDim2.fromOffset(88, 38)
-			minimize.Size = UDim2.fromOffset(40, 38)
-			close.Size = UDim2.fromOffset(40, 38)
+			controlRow.Position = UDim2.new(1, 0, 0, 0)
+			controlRow.Size = UDim2.fromOffset(92, 44)
+			minimize.Size = UDim2.fromOffset(46, 44)
+			close.Size = UDim2.fromOffset(46, 44)
 			for _, tab in ipairs(self.Tabs) do
 				tab.Button.Size = UDim2.fromOffset(120, 34)
 			end
@@ -1362,10 +1498,11 @@ function MoreUI:CreateWindow(options)
 			userCard.Visible = true
 			titleLabel.Size = UDim2.new(1, -(titleOffset + 252), 0, 25)
 			subtitleLabel.Size = UDim2.new(1, -(titleOffset + 252), 0, 20)
-			controlRow.Position = UDim2.new(1, -12, 0, 9)
+			userCard.Position = UDim2.new(1, -108, 0, 9)
+			controlRow.Position = UDim2.new(1, 0, 0, 0)
 			controlRow.Size = UDim2.fromOffset(96, 40)
-			minimize.Size = UDim2.fromOffset(44, 40)
-			close.Size = UDim2.fromOffset(44, 40)
+			minimize.Size = UDim2.fromOffset(48, 40)
+			close.Size = UDim2.fromOffset(48, 40)
 			for _, tab in ipairs(self.Tabs) do
 				tab.Button.Size = UDim2.new(1, 0, 0, 38)
 			end
@@ -1527,6 +1664,10 @@ function MoreUI:Notify(options)
 		padding(12),
 	})
 	applyGlass(card, theme, 14, "strong")
+	applyControlTexture(self, card, {
+		Radius = 14,
+		TextureTransparency = 0.88,
+	})
 
 	createIcon(self, options.Icon or "lucide:bell", {
 		Parent = card,
@@ -1594,6 +1735,10 @@ function MoreUI:CreateTab(name, icon)
 		Parent = self.Tabbar,
 	}, {
 		corner(theme.Radius),
+	})
+	applyControlTexture(self, button, {
+		Radius = theme.Radius,
+		TextureTransparency = 0.9,
 	})
 	tab.Button = button
 
@@ -1796,6 +1941,12 @@ function MoreUI:_rowBase(parent, height, options)
 	if options.Glass then
 		applyGlass(row, theme, options.Radius or theme.Radius, options.Strength, options.NoReflection)
 	end
+	applyControlTexture(self, row, {
+		Radius = options.Radius or theme.Radius,
+		Texture = options.Texture,
+		ControlTexture = options.ControlTexture,
+		TextureTransparency = options.TextureTransparency,
+	})
 	return row
 end
 
@@ -1836,6 +1987,12 @@ function MoreUI:_createContainer(parent, titleText, options)
 	else
 		applyGlass(frame, theme, options.Radius or theme.Radius, options.Strength or "soft", true)
 	end
+	applyControlTexture(self, frame, {
+		Radius = options.Radius or theme.Radius,
+		Texture = options.Texture,
+		ControlTexture = options.ControlTexture,
+		TextureTransparency = options.TextureTransparency or 0.9,
+	})
 	container.Frame = frame
 
 	local header = new("Frame", {
@@ -1962,6 +2119,10 @@ function MoreUI:_attachElementMethods(container, content)
 		}, {
 			corner(11),
 		})
+		applyControlTexture(library, button, {
+			Radius = 11,
+			TextureTransparency = 0.9,
+		})
 		if options.Icon then
 			createIcon(library, options.Icon, {
 				Parent = button,
@@ -2062,7 +2223,8 @@ function MoreUI:_attachElementMethods(container, content)
 				or windowOptions.ToggleOffAsset,
 			96
 		)
-		local useImageSwitch = onImageAsset ~= nil and offImageAsset ~= nil
+		local wantsImageSwitch = options.ToggleStyle == "image" or windowOptions.ToggleStyle == "image"
+		local useImageSwitch = wantsImageSwitch and onImageAsset ~= nil and offImageAsset ~= nil
 		local row = library:_rowBase(content, options.Height or 52, { Glass = true })
 		makeText({
 			Position = UDim2.fromOffset(14, 0),
@@ -2080,13 +2242,13 @@ function MoreUI:_attachElementMethods(container, content)
 			Position = UDim2.new(1, -14, 0.5, 0),
 			Size = UDim2.fromOffset(50, 28),
 			Text = "",
-			BackgroundColor3 = value and theme.Accent or theme.StrokeStrong,
-			BackgroundTransparency = useImageSwitch and 1 or 0,
+			BackgroundColor3 = theme.StrokeStrong,
+			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
 			ZIndex = 5,
 			Parent = row,
 		}, {
-			corner(12),
+			corner(14),
 		})
 		local onTrack
 		local offTrack
@@ -2118,30 +2280,70 @@ function MoreUI:_attachElementMethods(container, content)
 				Parent = switch,
 			})
 		else
+			local showToggleIcons = options.ShowToggleIcons == true or windowOptions.ShowToggleIcons == true
+			offTrack = new("Frame", {
+				Name = "OffTrack",
+				Size = UDim2.fromScale(1, 1),
+				BackgroundColor3 = value and theme.AccentSoft or theme.StrokeStrong,
+				BackgroundTransparency = value and 0.34 or 0.18,
+				BorderSizePixel = 0,
+				ZIndex = 5,
+				Parent = switch,
+			}, { corner(14), stroke(theme.Stroke, 0.38, 1) })
+			applyControlTexture(library, offTrack, {
+				Radius = 14,
+				TextureTransparency = 0.92,
+			})
+			onTrack = new("Frame", {
+				Name = "OnTrack",
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = value and UDim2.fromScale(0.5, 0.5) or UDim2.new(1, -14, 0.5, 0),
+				Size = value and UDim2.fromScale(1, 1) or UDim2.fromOffset(28, 28),
+				BackgroundColor3 = theme.Accent,
+				BackgroundTransparency = value and 0 or 1,
+				BorderSizePixel = 0,
+				ZIndex = 6,
+				Parent = switch,
+			}, { corner(14) })
+			applyControlTexture(library, onTrack, {
+				Radius = 14,
+				TextureTransparency = 0.94,
+			})
 			knob = new("Frame", {
 				Size = UDim2.fromOffset(22, 22),
 				Position = value and UDim2.fromOffset(25, 3) or UDim2.fromOffset(3, 3),
 				BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 				BorderSizePixel = 0,
-				ZIndex = 6,
+				ZIndex = 7,
 				Parent = switch,
 			}, { corner(11) })
-			onIcon = createIcon(library, options.ToggleOnIcon or "lucide:check", {
+			new("UIScale", {
+				Name = "KnobScale",
+				Scale = 1,
 				Parent = knob,
-				Position = UDim2.fromScale(0.5, 0.5),
-				AnchorPoint = Vector2.new(0.5, 0.5),
-				Size = UDim2.fromOffset(12, 12),
-				Color = theme.Accent,
-				ZIndex = 7,
 			})
-			offIcon = createIcon(library, options.ToggleOffIcon or "lucide:x", {
-				Parent = knob,
-				Position = UDim2.fromScale(0.5, 0.5),
-				AnchorPoint = Vector2.new(0.5, 0.5),
-				Size = UDim2.fromOffset(12, 12),
-				Color = theme.StrokeStrong,
-				ZIndex = 7,
+			applyControlTexture(library, knob, {
+				Radius = 11,
+				TextureTransparency = 0.92,
 			})
+			if showToggleIcons then
+				onIcon = createIcon(library, options.ToggleOnIcon or "lucide:check", {
+					Parent = knob,
+					Position = UDim2.fromScale(0.5, 0.5),
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					Size = UDim2.fromOffset(12, 12),
+					Color = theme.Accent,
+					ZIndex = 8,
+				})
+				offIcon = createIcon(library, options.ToggleOffIcon or "lucide:x", {
+					Parent = knob,
+					Position = UDim2.fromScale(0.5, 0.5),
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					Size = UDim2.fromOffset(12, 12),
+					Color = theme.StrokeStrong,
+					ZIndex = 8,
+				})
+			end
 		end
 
 		local element = { Instance = row, Value = value }
@@ -2155,16 +2357,41 @@ function MoreUI:_attachElementMethods(container, content)
 				tween(onTrack, Smooth, { ImageTransparency = value and 0 or 1 })
 				tween(offTrack, Smooth, { ImageTransparency = value and 1 or 0 })
 			else
-				tween(switch, Smooth, { BackgroundColor3 = value and theme.Accent or theme.StrokeStrong })
+				tween(offTrack, Smooth, {
+					BackgroundColor3 = value and theme.AccentSoft or theme.StrokeStrong,
+					BackgroundTransparency = value and 0.34 or 0.18,
+				})
+				tween(onTrack, Smooth, {
+					Position = value and UDim2.fromScale(0.5, 0.5) or UDim2.new(1, -14, 0.5, 0),
+					Size = value and UDim2.fromScale(1, 1) or UDim2.fromOffset(28, 28),
+					BackgroundTransparency = value and 0 or 1,
+				})
 				tween(knob, Smooth, { Position = value and UDim2.fromOffset(25, 3) or UDim2.fromOffset(3, 3) })
-				tween(onIcon, Fast, { ImageTransparency = value and 0 or 1 })
-				tween(offIcon, Fast, { ImageTransparency = value and 1 or 0 })
+				local knobScale = knob:FindFirstChild("KnobScale")
+				if knobScale then
+					tween(knobScale, Fast, { Scale = 0.9 })
+					task.delay(0.08, function()
+						if knobScale.Parent then
+							tween(knobScale, Fast, { Scale = 1 })
+						end
+					end)
+				end
+				if onIcon then
+					tween(onIcon, Fast, { ImageTransparency = value and 0 or 1 })
+				end
+				if offIcon then
+					tween(offIcon, Fast, { ImageTransparency = value and 1 or 0 })
+				end
 			end
 			safeCall(options.Callback, value)
 		end
 		if not useImageSwitch then
-			onIcon.ImageTransparency = value and 0 or 1
-			offIcon.ImageTransparency = value and 1 or 0
+			if onIcon then
+				onIcon.ImageTransparency = value and 0 or 1
+			end
+			if offIcon then
+				offIcon.ImageTransparency = value and 1 or 0
+			end
 		end
 
 		switch.MouseButton1Click:Connect(function()
@@ -2208,6 +2435,10 @@ function MoreUI:_attachElementMethods(container, content)
 			ZIndex = 5,
 			Parent = row,
 		}, { corner(7), stroke(theme.Stroke, 0.18, 1) })
+		applyControlTexture(library, box, {
+			Radius = 7,
+			TextureTransparency = 0.9,
+		})
 		local element = { Instance = row, Value = value }
 		function element:Set(newValue)
 			value = newValue == true
@@ -2266,6 +2497,10 @@ function MoreUI:_attachElementMethods(container, content)
 			ZIndex = 5,
 			Parent = row,
 		}, { corner(4) })
+		applyControlTexture(library, rail, {
+			Radius = 4,
+			TextureTransparency = 0.92,
+		})
 		local fill = new("Frame", {
 			Size = UDim2.fromScale((value - min) / (max - min), 1),
 			BackgroundColor3 = theme.Accent,
@@ -2273,6 +2508,10 @@ function MoreUI:_attachElementMethods(container, content)
 			ZIndex = 6,
 			Parent = rail,
 		}, { corner(4) })
+		applyControlTexture(library, fill, {
+			Radius = 4,
+			TextureTransparency = 0.92,
+		})
 		local thumb = new("Frame", {
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale((value - min) / (max - min), 0.5),
@@ -2282,6 +2521,10 @@ function MoreUI:_attachElementMethods(container, content)
 			ZIndex = 7,
 			Parent = rail,
 		}, { corner(9), stroke(theme.Accent, 0, 2) })
+		applyControlTexture(library, thumb, {
+			Radius = 9,
+			TextureTransparency = 0.9,
+		})
 
 		local element = { Instance = row, Value = value }
 		local dragging = false
@@ -2381,6 +2624,10 @@ function MoreUI:_attachElementMethods(container, content)
 			ZIndex = 5,
 			Parent = row,
 		}, { corner(9), stroke(theme.Stroke, 0.22, 1) })
+		applyControlTexture(library, minus, {
+			Radius = 9,
+			TextureTransparency = 0.9,
+		})
 		createIcon(library, options.MinusIcon or options.StepperMinusIcon or "lucide:minus", {
 			Parent = minus,
 			Position = UDim2.fromScale(0.5, 0.5),
@@ -2399,6 +2646,10 @@ function MoreUI:_attachElementMethods(container, content)
 			ZIndex = 5,
 			Parent = row,
 		}, { corner(9), stroke(theme.Stroke, 0.22, 1) })
+		applyControlTexture(library, plus, {
+			Radius = 9,
+			TextureTransparency = 0.9,
+		})
 		createIcon(library, options.PlusIcon or options.StepperPlusIcon or "lucide:plus", {
 			Parent = plus,
 			Position = UDim2.fromScale(0.5, 0.5),
@@ -2447,6 +2698,10 @@ function MoreUI:_attachElementMethods(container, content)
 		}, {
 			corner(10),
 			stroke(theme.Stroke, 0.24, 1),
+		})
+		applyControlTexture(library, button, {
+			Radius = 10,
+			TextureTransparency = 0.86,
 		})
 		local displayLabel = makeText({
 			Position = UDim2.fromOffset(12, 0),
@@ -2509,6 +2764,10 @@ function MoreUI:_attachElementMethods(container, content)
 					ZIndex = 6,
 					Parent = optionsFrame,
 				}, { corner(9) })
+				applyControlTexture(library, optionButton, {
+					Radius = 9,
+					TextureTransparency = 0.88,
+				})
 				addButtonMotion(optionButton, theme.Control, theme.SurfaceAlt)
 				optionButton.MouseButton1Click:Connect(function()
 					element:Set(item)
@@ -2619,6 +2878,10 @@ function MoreUI:_attachElementMethods(container, content)
 			stroke(theme.Stroke, 0.24, 1),
 			padding(10),
 		})
+		applyControlTexture(library, box, {
+			Radius = 10,
+			TextureTransparency = 0.86,
+		})
 		local element = { Instance = row, Value = box.Text }
 		function element:Set(text)
 			element.Value = tostring(text)
@@ -2667,6 +2930,10 @@ function MoreUI:_attachElementMethods(container, content)
 		}, {
 			corner(10),
 			stroke(theme.Stroke, 0.24, 1),
+		})
+		applyControlTexture(library, button, {
+			Radius = 10,
+			TextureTransparency = 0.86,
 		})
 		addButtonMotion(button, theme.Control, theme.SurfaceAlt)
 		local element = { Instance = row, Value = value }
@@ -2736,6 +3003,10 @@ function MoreUI:_attachElementMethods(container, content)
 			corner(7),
 			stroke(theme.StrokeStrong, 0.1, 1),
 		})
+		applyControlTexture(library, preview, {
+			Radius = 7,
+			TextureTransparency = 0.92,
+		})
 		local swatches = new("Frame", {
 			Position = UDim2.fromOffset(14, 40),
 			Size = UDim2.new(1, -28, 0, 36),
@@ -2786,6 +3057,10 @@ function MoreUI:_attachElementMethods(container, content)
 				corner(8),
 				stroke(theme.Stroke, 0.24, 1),
 				padding(8),
+			})
+			applyControlTexture(library, box, {
+				Radius = 8,
+				TextureTransparency = 0.86,
 			})
 			boxes[channel] = box
 			return box
@@ -2882,6 +3157,10 @@ function MoreUI:_attachElementMethods(container, content)
 			ZIndex = 5,
 			Parent = row,
 		}, { corner(4) })
+		applyControlTexture(library, rail, {
+			Radius = 4,
+			TextureTransparency = 0.92,
+		})
 		local fill = new("Frame", {
 			Size = UDim2.fromScale(value, 1),
 			BackgroundColor3 = options.Color or theme.Accent,
@@ -2889,6 +3168,10 @@ function MoreUI:_attachElementMethods(container, content)
 			ZIndex = 6,
 			Parent = rail,
 		}, { corner(4) })
+		applyControlTexture(library, fill, {
+			Radius = 4,
+			TextureTransparency = 0.92,
+		})
 		local element = { Instance = row, Value = value }
 		function element:Set(newValue)
 			value = math.clamp(tonumber(newValue) or 0, 0, 1)
@@ -2942,6 +3225,10 @@ function MoreUI:_attachElementMethods(container, content)
 				ZIndex = 6,
 				Parent = holder,
 			}, { corner(10), stroke(theme.Stroke, 0.32, 1) })
+			applyControlTexture(library, segment, {
+				Radius = 10,
+				TextureTransparency = 0.88,
+			})
 			buttons[item] = segment
 			addButtonMotion(segment, segment.BackgroundColor3, theme.SurfaceAlt)
 			segment.MouseButton1Click:Connect(function()
@@ -3044,6 +3331,10 @@ function MoreUI:_attachElementMethods(container, content)
 				ZIndex = 6,
 				Parent = tabButtons,
 			}, { corner(10), stroke(theme.Stroke, 0.34, 1) })
+			applyControlTexture(library, tabButton, {
+				Radius = 10,
+				TextureTransparency = 0.88,
+			})
 			if tabOptions.Icon then
 				createIcon(library, tabOptions.Icon, {
 					Parent = tabButton,

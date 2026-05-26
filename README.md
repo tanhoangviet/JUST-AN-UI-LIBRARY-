@@ -23,17 +23,18 @@ local window = MoreUI:CreateWindow({
 	ToggleKey = Enum.KeyCode.RightShift,
 	TopInset = 72,
 	OpenButtonPosition = UDim2.fromOffset(92, 86),
-	OpenIcon = { Path = "Assets/GeneratedIcons/window.png", PreserveColor = true },
-	LibraryIcon = { Path = "Assets/GeneratedIcons/library-symbol.png", PreserveColor = true },
-	MinimizeIcon = { Path = "Assets/GeneratedIcons/minimize-symbol.png", PreserveColor = true },
-	CloseIcon = { Path = "Assets/GeneratedIcons/close-symbol.png", PreserveColor = true },
-	ToggleOnIcon = { Path = "Assets/GeneratedIcons/check-symbol.png", PreserveColor = true },
-	ToggleOffIcon = { Path = "Assets/GeneratedIcons/x-symbol.png", PreserveColor = true },
-	ToggleOnImage = { Path = "Assets/GeneratedIcons/toggle-switch-on.png", PreserveColor = true },
-	ToggleOffImage = { Path = "Assets/GeneratedIcons/toggle-switch-off.png", PreserveColor = true },
-	StepperPlusIcon = { Path = "Assets/GeneratedIcons/plus-symbol.png", PreserveColor = true },
-	StepperMinusIcon = { Path = "Assets/GeneratedIcons/minus-symbol.png", PreserveColor = true },
+	OpenIcon = MoreUI.Window11Asset("window"),
+	LibraryIcon = MoreUI.Window11Asset("library-symbol"),
+	MinimizeIcon = MoreUI.Window11Asset("minimize-symbol"),
+	CloseIcon = MoreUI.Window11Asset("close-symbol"),
+	ToggleOnIcon = MoreUI.Window11Asset("check-symbol"),
+	ToggleOffIcon = MoreUI.Window11Asset("x-symbol"),
+	ToggleOnImage = MoreUI.Window11Asset("toggle-switch-on"),
+	ToggleOffImage = MoreUI.Window11Asset("toggle-switch-off"),
+	StepperPlusIcon = MoreUI.Window11Asset("plus-symbol"),
+	StepperMinusIcon = MoreUI.Window11Asset("minus-symbol"),
 	IconHubName = "My Hub",
+	TextureAsset = MoreUI.Window11Asset("moreui-liquid-texture"),
 	TexturePath = "Assets/moreui-liquid-texture.png",
 	TextureTransparency = 0.72,
 	Dark = false,
@@ -69,7 +70,8 @@ section:AddToggle({
 - `TopInset` keeps the UI below the Roblox topbar. Use `64-82` on mobile landscape; increase only if it touches the Roblox top menu.
 - Top-left open button defaults below the Roblox menu area and uses a Windows-style icon.
 - `LibraryIcon`, `OpenIcon`, `MinimizeIcon`, `CloseIcon`, `ToggleOnIcon`, `ToggleOffIcon`, `ToggleOnImage`, `ToggleOffImage`, `StepperPlusIcon`, and `StepperMinusIcon` can each use separate image assets.
-- `TexturePath` can point at a local `getcustomasset` texture for the panel background.
+- `MoreUI.Window11Asset(name)` downloads generated UI assets from GitHub and caches them to `{IconHubName}/Asset/Window11/{name}.png` with `writefile`.
+- `TexturePath` can still point at a local `getcustomasset` texture as fallback for the panel background.
 - Close/minimize hides the UI so the open button can bring it back.
 - `ToggleKey` calls `window:Toggle()` instead of disabling the whole `ScreenGui`.
 
@@ -84,22 +86,28 @@ Icons accept WindUI-like strings such as:
 "Assets/GeneratedIcons/window.png"
 "rbxassetid://123456789"
 "https://example.com/icon.png"
+MoreUI.Window11Asset("window")
 ```
 
-For full-color generated PNGs, pass a table with `PreserveColor = true`:
+For generated Windows 11 PNGs hosted on GitHub, use:
 
 ```lua
-OpenIcon = {
-	Path = "Assets/GeneratedIcons/window.png",
-	PreserveColor = true,
-}
+OpenIcon = MoreUI.Window11Asset("window")
+LibraryIcon = MoreUI.Window11Asset("library-symbol")
 ```
 
 For full toggle-switch image assets, use:
 
 ```lua
-ToggleOnImage = { Path = "Assets/GeneratedIcons/toggle-switch-on.png", PreserveColor = true }
-ToggleOffImage = { Path = "Assets/GeneratedIcons/toggle-switch-off.png", PreserveColor = true }
+ToggleOnImage = MoreUI.Window11Asset("toggle-switch-on")
+ToggleOffImage = MoreUI.Window11Asset("toggle-switch-off")
+```
+
+The default GitHub URL template is:
+
+```lua
+MoreUI.Window11AssetBaseUrl =
+	"https://raw.githubusercontent.com/tanhoangviet/JUST-AN-UI-LIBRARY-/main/Assets/GeneratedIcons/{name}.png"
 ```
 
 Icons are loaded as image assets. You can also pass an icon provider:

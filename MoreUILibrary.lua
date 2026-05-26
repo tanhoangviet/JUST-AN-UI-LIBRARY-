@@ -15,6 +15,11 @@ MoreUI.IconPacks = {}
 MoreUI.IconUrlTemplates = {
 	lucide = "https://raw.githubusercontent.com/tijnepema/lucide-roblox/master/icons/processed/{size}px/{name}.png",
 }
+MoreUI.Window11AssetBaseUrl =
+	"https://raw.githubusercontent.com/tanhoangviet/JUST-AN-UI-LIBRARY-/main/Assets/GeneratedIcons/{name}.png"
+MoreUI.Window11AssetUrls = {
+	["moreui-liquid-texture"] = "https://raw.githubusercontent.com/tanhoangviet/JUST-AN-UI-LIBRARY-/main/Assets/moreui-liquid-texture.png",
+}
 
 local Theme = {
 	Background = Color3.fromRGB(244, 246, 250),
@@ -106,6 +111,17 @@ local function mergeTheme(base, overrides)
 		for key, value in pairs(overrides) do
 			out[key] = value
 		end
+	end
+	return out
+end
+
+local function mergeMap(base, overrides)
+	local out = {}
+	for key, value in pairs(base or {}) do
+		out[key] = value
+	end
+	for key, value in pairs(overrides or {}) do
+		out[key] = value
 	end
 	return out
 end
@@ -213,7 +229,7 @@ end
 
 local function getIconValue(icon)
 	if typeof(icon) == "table" then
-		return icon.Path or icon.Asset or icon.Image or icon.Name or icon.Icon or icon[1]
+		return icon.Path or icon.Asset or icon.Image or icon.Window11 or icon.Name or icon.Icon or icon[1]
 	end
 	return icon
 end
@@ -365,9 +381,93 @@ local function getCachePath(library, packName, iconName)
 	return string.format("%s/Icons/%s/%s.png", cacheRoot, folderName, sanitizeFileName(iconName))
 end
 
+local function normalizePngName(name)
+	name = sanitizeFileName(name)
+	if not string.match(string.lower(name), "%.png$") then
+		name = name .. ".png"
+	end
+	return name
+end
+
+local function stripPngExtension(name)
+	name = tostring(name or "")
+	return (string.gsub(name, "%.png$", ""))
+end
+
+local function getWindow11AssetCachePath(library, assetName)
+	local hubName = (library and library.IconHubName) or (library and library.Title) or "MoreUI"
+	local cacheRoot = (library and library.IconCacheFolder) or sanitizeFileName(hubName)
+	return string.format("%s/Asset/Window11/%s", cacheRoot, normalizePngName(assetName))
+end
+
+local function getWindow11AssetFallbackPath(assetName)
+	local cleanName = stripPngExtension(tostring(assetName or ""))
+	if cleanName == "moreui-liquid-texture" then
+		return "Assets/moreui-liquid-texture.png"
+	end
+	return "Assets/GeneratedIcons/" .. normalizePngName(cleanName)
+end
+
+local function resolveWindow11AssetUrl(library, assetName)
+	local key = stripPngExtension(string.lower(tostring(assetName or "")))
+	local urls = (library and library.Window11AssetUrls) or MoreUI.Window11AssetUrls
+	if urls and urls[key] then
+		return urls[key]
+	end
+
+	local template = (library and library.Window11AssetBaseUrl) or MoreUI.Window11AssetBaseUrl
+	if typeof(template) == "function" then
+		return template(stripPngExtension(assetName), assetName)
+	end
+	if typeof(template) == "string" then
+		local url = template
+		url = string.gsub(url, "{name}", stripPngExtension(assetName))
+		url = string.gsub(url, "{file}", normalizePngName(assetName))
+		return url
+	end
+	return nil
+end
+
+local function getWindow11Asset(library, asset, fallbackPath)
+	local assetName = asset
+	local url
+	if typeof(asset) == "table" then
+		url = asset.Url or asset.URL
+		assetName = asset.Window11 or asset.Name or asset.AssetName or asset.File or asset[1] or url
+		fallbackPath = fallbackPath or asset.FallbackPath or asset.Path
+	end
+	if typeof(assetName) ~= "string" or assetName == "" then
+		return fallbackPath and resolveLocalAsset(fallbackPath) or nil
+	end
+	fallbackPath = fallbackPath or getWindow11AssetFallbackPath(assetName)
+
+	local localAsset = resolveLocalAsset(assetName)
+	if localAsset then
+		return localAsset
+	end
+
+	if string.sub(assetName, 1, 7) == "http://" or string.sub(assetName, 1, 8) == "https://" then
+		url = assetName
+		assetName = string.match(assetName, "/([^/%?]+)%.png") or "asset"
+	end
+	url = url or resolveWindow11AssetUrl(library, assetName)
+	if not url then
+		return fallbackPath and resolveLocalAsset(fallbackPath) or nil
+	end
+
+	local assetPath = getWindow11AssetCachePath(library, assetName)
+	return downloadAsset(url, assetPath) or (fallbackPath and resolveLocalAsset(fallbackPath) or nil)
+end
+
 local function getIconAsset(library, icon, size)
 	if typeof(icon) == "number" then
 		return "rbxassetid://" .. tostring(icon)
+	end
+	if typeof(icon) == "table" and (icon.Window11 or icon.AssetName or icon.Url or icon.URL) then
+		local asset = getWindow11Asset(library, icon)
+		if asset then
+			return asset
+		end
 	end
 	icon = getIconValue(icon)
 	if typeof(icon) ~= "string" then
@@ -725,6 +825,16 @@ function MoreUI:PreloadIcons(icons, size)
 	end
 end
 
+function MoreUI.Window11Asset(name, options)
+	options = options or {}
+	return {
+		Window11 = name,
+		Url = options.Url,
+		FallbackPath = options.FallbackPath,
+		PreserveColor = options.PreserveColor ~= false,
+	}
+end
+
 function MoreUI:CreateWindow(options)
 	options = options or {}
 
@@ -735,6 +845,8 @@ function MoreUI:CreateWindow(options)
 	library.IconProvider = options.IconProvider or MoreUI.IconProvider
 	library.IconPacks = options.IconPacks or MoreUI.IconPacks
 	library.IconUrlTemplates = options.IconUrlTemplates or MoreUI.IconUrlTemplates
+	library.Window11AssetBaseUrl = options.Window11AssetBaseUrl or MoreUI.Window11AssetBaseUrl
+	library.Window11AssetUrls = mergeMap(MoreUI.Window11AssetUrls, options.Window11AssetUrls)
 	library.IconHubName = options.IconHubName or options.Name or library.Title
 	library.IconCacheFolder = options.IconCacheFolder or sanitizeFileName(library.IconHubName)
 	library.Flags = {}
@@ -946,7 +1058,15 @@ function MoreUI:CreateWindow(options)
 	playGradient()
 
 	local textureImage
-	local textureAsset = resolveLocalAsset(options.TexturePath or "Assets/moreui-liquid-texture.png")
+	local textureAsset
+	if options.TextureAsset ~= false then
+		textureAsset = getWindow11Asset(
+			library,
+			options.TextureAsset or options.TextureWindow11Asset or "moreui-liquid-texture",
+			options.TexturePath or "Assets/moreui-liquid-texture.png"
+		)
+	end
+	textureAsset = textureAsset or resolveLocalAsset(options.TexturePath or "Assets/moreui-liquid-texture.png")
 	if not textureAsset and options.TextureUrl then
 		textureAsset = downloadAsset(options.TextureUrl, options.TexturePath or "Assets/moreui-liquid-texture.png")
 	end

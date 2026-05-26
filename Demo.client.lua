@@ -239,30 +239,31 @@ overview:AddHighlightButton({
 	end,
 })
 
+local linkedItems = {}
+local linkedIcons = {
+	"lucide:home",
+	"lucide:settings",
+	"lucide:folder",
+	"lucide:palette",
+	"lucide:sparkles",
+	"lucide:keyboard",
+	"lucide:sliders",
+	"lucide:user",
+	"lucide:save",
+}
+for index, icon in ipairs(linkedIcons) do
+	local itemIndex = index
+	table.insert(linkedItems, {
+		Text = ("Linked Button %02d"):format(itemIndex),
+		Icon = icon,
+		Callback = function()
+			print("Linked", itemIndex)
+		end,
+	})
+end
 overview:AddButtonLink({
-	Buttons = {
-		{
-			Text = "Linked Button One",
-			Icon = "lucide:home",
-			Callback = function()
-				print("Link one")
-			end,
-		},
-		{
-			Text = "Linked Button Two",
-			Icon = "lucide:settings",
-			Callback = function()
-				print("Link two")
-			end,
-		},
-		{
-			Text = "Linked Button Three",
-			Icon = "lucide:folder",
-			Callback = function()
-				print("Link three")
-			end,
-		},
-	},
+	ButtonHeight = 34,
+	Buttons = linkedItems,
 })
 
 local player = main:CreateSection("Player", {

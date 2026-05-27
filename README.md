@@ -9,7 +9,9 @@ A Roblox Luau UI library inspired by Windows 11 and liquid glass/mobile bottom-s
 - `Assets/moreui-liquid-texture.png` - generated Windows-style texture used by `TexturePath`.
 - `Assets/control-texture.png` - generated subtle control texture for buttons, dropdowns, inputs, color pickers, and menus.
 - `Assets/slider-texture.png`, `Assets/dropdown-texture.png`, `Assets/button-link-texture.png` - generated special textures for upgraded controls.
+- `Assets/button-texture.png`, `Assets/highlight-button-texture.png`, `Assets/open-button-texture.png` - generated textures for normal buttons, highlight actions, and the floating open button.
 - `Assets/button-link-top.png`, `Assets/button-link-center.png`, `Assets/button-link-bottom.png` - generated linked-button state textures for long linked groups.
+- `Assets/key-card-texture.png`, `Assets/key-banner-texture.png`, `Assets/key-thumbnail-texture.png`, `Assets/loading-card-texture.png` - generated key system and loading window textures.
 - `Assets/window11-background.png` - generated Windows 11 style background used behind the liquid glass shell.
 - `Assets/generated-icon-sheet-v1.png` - generated source sheet for custom UI icons.
 - `Assets/GeneratedIcons/*.png` - generated PNG assets for the window button, library mark, controls, toggles, steppers, and Window11 icon set.
@@ -20,6 +22,14 @@ Put `MoreUILibrary.lua` in a ModuleScript named `MoreUILibrary`, then require it
 
 ```lua
 local MoreUI = require(script.Parent.MoreUILibrary)
+
+MoreUI:KeySystem({
+	Enabled = true,
+	Key = "moreui",
+	Title = "My Hub",
+	Subtitle = "Windows 11 loader",
+	IconHubName = "My Hub",
+})
 
 local window = MoreUI:CreateWindow({
 	Title = "My Hub",
@@ -66,6 +76,7 @@ section:AddToggle({
 - Smaller default window and lighter corner radius.
 - `TopInset` keeps the UI below the Roblox topbar. Use `64-82` on mobile landscape; increase only if it touches the Roblox top menu.
 - Top-left open button defaults below the Roblox menu area and uses a Windows-style icon.
+- The floating open button now uses `open-button-texture` by default for a linked-button style glass surface.
 - `SidebarCompact = true` makes main tabs icon-only and gives more room to page content.
 - Window 11 generated icons are built in by default for `OpenIcon`, `LibraryIcon`, `MinimizeIcon`, `CloseIcon`, toggle icons/images, and stepper icons. Override any of them only when you need a custom asset.
 - Clicking the user card opens `ShowUserTabs()`, a small Windows 11 style user tab panel.
@@ -76,6 +87,8 @@ section:AddToggle({
 - `Window11Icons = true` maps common Lucide/Solar icon names to generated Window11 PNG icons. You can also call `MoreUI.Window11Icon("home")`.
 - `ControlTextureAsset` applies a subtle custom texture across controls. Set `ControlTexture = false` to disable it globally, or pass `Texture = false` on a row/container option to skip it locally.
 - `AddButtonLink` automatically uses `button-link-top`, `button-link-center`, and `button-link-bottom`, so linked groups with 2, 3, 9, or more buttons stay connected.
+- `AddButton` and `AddHighlightButton` use generated `button-texture` and `highlight-button-texture` unless disabled with `TextureAsset = false`.
+- `MoreUI:KeySystem(options)` shows a built-in Windows 11 key gate with generated banner, thumbnail, loading window, and asset-backed controls before creating the main UI.
 - `TexturePath` can still point at a local `getcustomasset` texture as fallback for the panel background.
 - Close/minimize hides the UI so the open button can bring it back.
 - `ToggleKey` calls `window:Toggle()` instead of disabling the whole `ScreenGui`.
@@ -173,6 +186,7 @@ end)
 - `AddHighlightButton({ Text, Icon, Callback })`
 - `AddButtonLink({ ButtonHeight, Buttons = { { Text, Icon, Callback }, ... } })`
 - `AddToggle({ Title, Flag, Default, ToggleOnImage, ToggleOffImage, Callback })`
+- `KeySystem({ Key, Keys, Validate, Title, Subtitle, BannerAsset, ThumbnailAsset })`
 - `ShowUserTabs({ Tabs })`
 - `ShowLoading({ Title, Content })`
 - `Dialog({ Title, Content, Icon, Actions })`

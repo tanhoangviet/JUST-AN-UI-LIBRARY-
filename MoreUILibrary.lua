@@ -11,7 +11,7 @@ local LocalPlayer = Players.LocalPlayer
 
 local MoreUI = {}
 MoreUI.__index = MoreUI
-MoreUI.Version = "2.1.0"
+MoreUI.Version = "2.2.0"
 MoreUI.IconPacks = {}
 MoreUI.IconUrlTemplates = {
 	lucide = "https://raw.githubusercontent.com/tijnepema/lucide-roblox/master/icons/processed/{size}px/{name}.png",
@@ -19,13 +19,20 @@ MoreUI.IconUrlTemplates = {
 MoreUI.Window11AssetBaseUrl =
 	"https://raw.githubusercontent.com/tanhoangviet/JUST-AN-UI-LIBRARY-/main/Assets/GeneratedIcons/{name}.png"
 MoreUI.Window11AssetUrls = {
+	["button-texture"] = "https://raw.githubusercontent.com/tanhoangviet/JUST-AN-UI-LIBRARY-/main/Assets/button-texture.png",
 	["button-link-bottom"] = "https://raw.githubusercontent.com/tanhoangviet/JUST-AN-UI-LIBRARY-/main/Assets/button-link-bottom.png",
 	["button-link-center"] = "https://raw.githubusercontent.com/tanhoangviet/JUST-AN-UI-LIBRARY-/main/Assets/button-link-center.png",
 	["button-link-texture"] = "https://raw.githubusercontent.com/tanhoangviet/JUST-AN-UI-LIBRARY-/main/Assets/button-link-texture.png",
 	["button-link-top"] = "https://raw.githubusercontent.com/tanhoangviet/JUST-AN-UI-LIBRARY-/main/Assets/button-link-top.png",
 	["control-texture"] = "https://raw.githubusercontent.com/tanhoangviet/JUST-AN-UI-LIBRARY-/main/Assets/control-texture.png",
 	["dropdown-texture"] = "https://raw.githubusercontent.com/tanhoangviet/JUST-AN-UI-LIBRARY-/main/Assets/dropdown-texture.png",
+	["highlight-button-texture"] = "https://raw.githubusercontent.com/tanhoangviet/JUST-AN-UI-LIBRARY-/main/Assets/highlight-button-texture.png",
+	["key-banner-texture"] = "https://raw.githubusercontent.com/tanhoangviet/JUST-AN-UI-LIBRARY-/main/Assets/key-banner-texture.png",
+	["key-card-texture"] = "https://raw.githubusercontent.com/tanhoangviet/JUST-AN-UI-LIBRARY-/main/Assets/key-card-texture.png",
+	["key-thumbnail-texture"] = "https://raw.githubusercontent.com/tanhoangviet/JUST-AN-UI-LIBRARY-/main/Assets/key-thumbnail-texture.png",
+	["loading-card-texture"] = "https://raw.githubusercontent.com/tanhoangviet/JUST-AN-UI-LIBRARY-/main/Assets/loading-card-texture.png",
 	["moreui-liquid-texture"] = "https://raw.githubusercontent.com/tanhoangviet/JUST-AN-UI-LIBRARY-/main/Assets/moreui-liquid-texture.png",
+	["open-button-texture"] = "https://raw.githubusercontent.com/tanhoangviet/JUST-AN-UI-LIBRARY-/main/Assets/open-button-texture.png",
 	["slider-texture"] = "https://raw.githubusercontent.com/tanhoangviet/JUST-AN-UI-LIBRARY-/main/Assets/slider-texture.png",
 	["window11-background"] = "https://raw.githubusercontent.com/tanhoangviet/JUST-AN-UI-LIBRARY-/main/Assets/window11-background.png",
 }
@@ -517,6 +524,9 @@ local function getWindow11AssetFallbackPath(assetName)
 	if cleanName == "control-texture" then
 		return "Assets/control-texture.png"
 	end
+	if cleanName == "button-texture" then
+		return "Assets/button-texture.png"
+	end
 	if cleanName == "button-link-texture" then
 		return "Assets/button-link-texture.png"
 	end
@@ -532,8 +542,26 @@ local function getWindow11AssetFallbackPath(assetName)
 	if cleanName == "dropdown-texture" then
 		return "Assets/dropdown-texture.png"
 	end
+	if cleanName == "highlight-button-texture" then
+		return "Assets/highlight-button-texture.png"
+	end
+	if cleanName == "key-banner-texture" then
+		return "Assets/key-banner-texture.png"
+	end
+	if cleanName == "key-card-texture" then
+		return "Assets/key-card-texture.png"
+	end
+	if cleanName == "key-thumbnail-texture" then
+		return "Assets/key-thumbnail-texture.png"
+	end
+	if cleanName == "loading-card-texture" then
+		return "Assets/loading-card-texture.png"
+	end
 	if cleanName == "moreui-liquid-texture" then
 		return "Assets/moreui-liquid-texture.png"
+	end
+	if cleanName == "open-button-texture" then
+		return "Assets/open-button-texture.png"
 	end
 	if cleanName == "slider-texture" then
 		return "Assets/slider-texture.png"
@@ -1271,18 +1299,23 @@ function MoreUI:CreateWindow(options)
 		Position = options.OpenButtonPosition or UDim2.fromOffset(92, 86),
 		Size = options.OpenButtonSize or UDim2.fromOffset(50, 50),
 		Text = "",
-		BackgroundColor3 = Color3.fromRGB(22, 24, 29),
-		BackgroundTransparency = 0.08,
-		TextColor3 = Color3.fromRGB(255, 255, 255),
+		BackgroundColor3 = options.OpenButtonColor or library.Theme.Surface,
+		BackgroundTransparency = options.OpenButtonTransparency or 0.08,
+		TextColor3 = library.Theme.Text,
 		ZIndex = 80,
 		Parent = screenGui,
 	}, {
 		corner(14),
-		stroke(Color3.fromRGB(255, 255, 255), 0.78, 1),
+		stroke(library.Theme.Stroke, 0.18, 1),
 	})
+	applyGlass(openButton, library.Theme, 14, "soft", true)
 	applyControlTexture(library, openButton, {
 		Radius = 14,
 		TextureTransparency = 0.9,
+	})
+	applyWindowAssetTexture(library, openButton, options.OpenButtonTextureAsset or "open-button-texture", {
+		Radius = 14,
+		Transparency = options.OpenButtonTextureTransparency or 0.34,
 	})
 	local openIconName = defaultWindow11Option(options, "OpenIcon", "lucide:panel-top")
 	if options.OpenIcon == "window" or options.OpenIcon == "windows" then
@@ -1293,10 +1326,15 @@ function MoreUI:CreateWindow(options)
 		Position = UDim2.fromScale(0.5, 0.5),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Size = UDim2.fromOffset(24, 24),
-		Color = Color3.fromRGB(255, 255, 255),
+		Color = options.OpenButtonIconColor or library.Theme.Accent,
 		ZIndex = 81,
 	})
-	addButtonMotion(openButton, Color3.fromRGB(22, 24, 29), Color3.fromRGB(35, 38, 45), Color3.fromRGB(8, 9, 12))
+	addButtonMotion(
+		openButton,
+		options.OpenButtonColor or library.Theme.Surface,
+		options.OpenButtonHoverColor or library.Theme.SurfaceAlt,
+		options.OpenButtonDownColor or library.Theme.AccentSoft
+	)
 	library.OpenButton = openButton
 
 	local shadow = new("ImageLabel", {
@@ -2104,7 +2142,7 @@ function MoreUI:ShowLoading(options)
 		Name = "LoadingCard",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = options.Size or UDim2.fromOffset(286, 118),
+		Size = options.Size or UDim2.fromOffset(320, 134),
 		BackgroundColor3 = theme.Surface,
 		BorderSizePixel = 0,
 		ZIndex = 51,
@@ -2118,13 +2156,17 @@ function MoreUI:ShowLoading(options)
 		Radius = 16,
 		TextureTransparency = 0.88,
 	})
+	applyWindowAssetTexture(self, card, options.TextureAsset or "loading-card-texture", {
+		Radius = 16,
+		Transparency = options.TextureTransparency or 0.54,
+	})
 	local cardScale = new("UIScale", { Scale = 0.96, Parent = card })
 	tween(cardScale, Smooth, { Scale = 1 })
 
 	local spinner = new("Frame", {
 		Name = "Spinner",
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.fromOffset(24, 58),
+		Position = UDim2.fromOffset(24, 62),
 		Size = UDim2.fromOffset(38, 38),
 		BackgroundTransparency = 1,
 		ZIndex = 52,
@@ -2160,7 +2202,7 @@ function MoreUI:ShowLoading(options)
 	local message = makeText({
 		Name = "LoadingMessage",
 		Position = UDim2.fromOffset(78, 54),
-		Size = UDim2.new(1, -96, 0, 42),
+		Size = UDim2.new(1, -96, 0, 38),
 		Text = options.Content or options.Message or "Please wait...",
 		TextColor3 = theme.MutedText,
 		TextSize = 13,
@@ -2169,8 +2211,39 @@ function MoreUI:ShowLoading(options)
 		ZIndex = 52,
 		Parent = card,
 	})
+	local progressRail = new("Frame", {
+		Name = "LoadingProgress",
+		Position = UDim2.fromOffset(78, 104),
+		Size = UDim2.new(1, -104, 0, 5),
+		BackgroundColor3 = Color3.fromRGB(222, 232, 244),
+		BackgroundTransparency = 0.18,
+		BorderSizePixel = 0,
+		ZIndex = 52,
+		Parent = card,
+	}, { corner(3) })
+	local progressFill = new("Frame", {
+		Name = "Fill",
+		Size = UDim2.fromScale(0.18, 1),
+		BackgroundColor3 = theme.Accent,
+		BorderSizePixel = 0,
+		ZIndex = 53,
+		Parent = progressRail,
+	}, {
+		corner(3),
+		new("UIGradient", {
+			Name = "ProgressSheet",
+			Rotation = 0,
+			Offset = Vector2.new(-0.75, 0),
+			Color = ColorSequence.new({
+				ColorSequenceKeypoint.new(0, theme.Accent),
+				ColorSequenceKeypoint.new(0.52, Color3.fromRGB(125, 215, 255)),
+				ColorSequenceKeypoint.new(1, theme.AccentHover),
+			}),
+		}),
+	})
 
 	local alive = true
+	local progressGradient = progressFill:FindFirstChild("ProgressSheet")
 	local function spin()
 		if not alive or not spinner.Parent then
 			return
@@ -2186,6 +2259,30 @@ function MoreUI:ShowLoading(options)
 		end)
 	end
 	spin()
+	local function playProgress()
+		if not alive or not progressFill.Parent then
+			return
+		end
+		progressFill.Size = UDim2.fromScale(0.16, 1)
+		if progressGradient then
+			progressGradient.Offset = Vector2.new(-0.75, 0)
+			tween(progressGradient, TweenInfo.new(1.05, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+				Offset = Vector2.new(0.75, 0),
+			})
+		end
+		local progressTween =
+			tween(progressFill, TweenInfo.new(1.05, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+				Size = UDim2.fromScale(1, 1),
+			})
+		local connection
+		connection = progressTween.Completed:Connect(function()
+			if connection then
+				connection:Disconnect()
+			end
+			playProgress()
+		end)
+	end
+	playProgress()
 
 	local loading = { Instance = overlay, Card = card }
 	function loading:SetText(text)
@@ -2204,6 +2301,534 @@ function MoreUI:ShowLoading(options)
 		end
 	end
 	return loading
+end
+
+function MoreUI:ShowKeySystem(options)
+	options = options or {}
+	local enabled = options.Enabled ~= false
+	local theme = mergeTheme(options.Dark and DarkTheme or Theme, options.Theme)
+	local hubName = options.IconHubName or options.Name or options.Title or "More UI"
+	local scope = {
+		Theme = theme,
+		IconHubName = hubName,
+		IconCacheFolder = options.IconCacheFolder or sanitizeFileName(hubName),
+		IconProvider = options.IconProvider or MoreUI.IconProvider,
+		IconPacks = options.IconPacks or MoreUI.IconPacks,
+		IconUrlTemplates = options.IconUrlTemplates or MoreUI.IconUrlTemplates,
+		Window11AssetBaseUrl = options.Window11AssetBaseUrl or MoreUI.Window11AssetBaseUrl,
+		Window11AssetUrls = mergeMap(MoreUI.Window11AssetUrls, options.Window11AssetUrls),
+		_options = {
+			ControlTextureAsset = options.ControlTextureAsset or "control-texture",
+			ControlTextureTransparency = options.ControlTextureTransparency or 0.86,
+			Dark = options.Dark,
+			Window11Icons = options.Window11Icons,
+		},
+	}
+
+	local parent = options.Parent
+	if not parent then
+		local playerGui = LocalPlayer and LocalPlayer:FindFirstChildOfClass("PlayerGui")
+		parent = playerGui or game:GetService("CoreGui")
+	end
+
+	local viewport = getViewport()
+	local width = math.min(options.Width or 430, math.max(300, viewport.X - 32))
+	local height = math.min(options.Height or (enabled and 356 or 292), math.max(260, viewport.Y - 36))
+	local screenGui = new("ScreenGui", {
+		Name = options.GuiName or ((options.Name or "MoreUI") .. "KeySystem"),
+		IgnoreGuiInset = true,
+		ResetOnSpawn = false,
+		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+		Parent = parent,
+	})
+
+	local shade = new("Frame", {
+		Name = "Shade",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Color3.fromRGB(10, 13, 20),
+		BackgroundTransparency = options.OverlayTransparency or 0.24,
+		BorderSizePixel = 0,
+		ZIndex = 100,
+		Parent = screenGui,
+	}, {
+		new("UIGradient", {
+			Name = "SheetGradient",
+			Rotation = 18,
+			Offset = Vector2.new(-0.6, 0),
+			Color = ColorSequence.new({
+				ColorSequenceKeypoint.new(0, Color3.fromRGB(18, 28, 48)),
+				ColorSequenceKeypoint.new(0.45, Color3.fromRGB(45, 119, 196)),
+				ColorSequenceKeypoint.new(1, Color3.fromRGB(205, 238, 255)),
+			}),
+			Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0.35),
+				NumberSequenceKeypoint.new(0.5, 0.72),
+				NumberSequenceKeypoint.new(1, 0.48),
+			}),
+		}),
+	})
+	local shadeGradient = shade:FindFirstChild("SheetGradient")
+
+	local card = new("Frame", {
+		Name = "KeyWindow",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.54),
+		Size = UDim2.fromOffset(width, height),
+		BackgroundColor3 = theme.Surface,
+		BorderSizePixel = 0,
+		ClipsDescendants = true,
+		ZIndex = 101,
+		Parent = shade,
+	}, {
+		corner(18),
+		stroke(theme.Stroke, 0.14, 1),
+	})
+	applyGlass(card, theme, 18, "strong")
+	applyWindowAssetTexture(scope, card, options.TextureAsset or "key-card-texture", {
+		Radius = 18,
+		Transparency = options.TextureTransparency or 0.38,
+	})
+	local scale = new("UIScale", { Scale = 0.96, Parent = card })
+	tween(card, WindowAnim, { Position = UDim2.fromScale(0.5, 0.5) })
+	tween(scale, WindowAnim, { Scale = 1 })
+
+	local banner = new("Frame", {
+		Name = "Banner",
+		Position = UDim2.fromOffset(14, 14),
+		Size = UDim2.new(1, -28, 0, 106),
+		BackgroundColor3 = theme.AccentSoft,
+		BorderSizePixel = 0,
+		ClipsDescendants = true,
+		ZIndex = 102,
+		Parent = card,
+	}, { corner(15), stroke(theme.Stroke, 0.44, 1) })
+	applyWindowAssetTexture(scope, banner, options.BannerAsset or "key-banner-texture", {
+		Radius = 15,
+		Transparency = options.BannerTransparency or 0.18,
+	})
+
+	local thumbnail = new("Frame", {
+		Name = "Thumbnail",
+		Position = UDim2.fromOffset(18, 18),
+		Size = UDim2.fromOffset(70, 70),
+		BackgroundColor3 = theme.Surface,
+		BorderSizePixel = 0,
+		ZIndex = 104,
+		Parent = banner,
+	}, { corner(16), stroke(theme.Accent, 0.12, 2) })
+	applyWindowAssetTexture(scope, thumbnail, options.ThumbnailAsset or "key-thumbnail-texture", {
+		Radius = 16,
+		Transparency = options.ThumbnailTransparency or 0.08,
+	})
+	createIcon(scope, options.Icon or MoreUI.Window11Icon("keyboard"), {
+		Parent = thumbnail,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(30, 30),
+		Color = theme.Accent,
+		ZIndex = 106,
+	})
+
+	makeText({
+		Name = "Title",
+		Position = UDim2.fromOffset(104, 22),
+		Size = UDim2.new(1, -124, 0, 28),
+		Text = options.Title or "More UI Library",
+		TextColor3 = theme.Text,
+		TextSize = 18,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		FontFace = Font.new("rbxasset://fonts/families/BuilderSans.json", Enum.FontWeight.Bold),
+		ZIndex = 105,
+		Parent = banner,
+	})
+	makeText({
+		Name = "Subtitle",
+		Position = UDim2.fromOffset(104, 52),
+		Size = UDim2.new(1, -124, 0, 38),
+		Text = options.Subtitle or "Secure Windows 11 loader",
+		TextColor3 = theme.MutedText,
+		TextSize = 13,
+		TextWrapped = true,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		ZIndex = 105,
+		Parent = banner,
+	})
+
+	local status = makeText({
+		Name = "Status",
+		Position = UDim2.fromOffset(26, 130),
+		Size = UDim2.new(1, -52, 0, 22),
+		Text = enabled and (options.StatusText or "Enter your key to continue.") or "Preparing library...",
+		TextColor3 = theme.MutedText,
+		TextSize = 13,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		ZIndex = 103,
+		Parent = card,
+	})
+
+	local inputPanel = new("Frame", {
+		Name = "InputPanel",
+		Position = UDim2.fromOffset(20, 160),
+		Size = UDim2.new(1, -40, 0, 128),
+		BackgroundTransparency = 1,
+		ZIndex = 103,
+		Visible = enabled,
+		Parent = card,
+	})
+	local keyBox = new("TextBox", {
+		Name = "KeyBox",
+		Position = UDim2.fromOffset(0, 0),
+		Size = UDim2.new(1, 0, 0, 42),
+		BackgroundColor3 = theme.Control,
+		BackgroundTransparency = theme.ControlTransparency,
+		BorderSizePixel = 0,
+		ClearTextOnFocus = false,
+		FontFace = Font.new("rbxasset://fonts/families/BuilderSans.json", Enum.FontWeight.Medium),
+		PlaceholderColor3 = theme.MutedText,
+		PlaceholderText = options.Placeholder or "Key",
+		Text = options.DefaultText or "",
+		TextColor3 = theme.Text,
+		TextSize = 14,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ZIndex = 104,
+		Parent = inputPanel,
+	}, { corner(11), stroke(theme.Stroke, 0.18, 1), padding(12) })
+	applyControlTexture(scope, keyBox, {
+		Radius = 11,
+		TextureTransparency = 0.84,
+	})
+
+	local unlockButton = makeButton({
+		Name = "UnlockButton",
+		Position = UDim2.fromOffset(0, 54),
+		Size = UDim2.new(1, 0, 0, 42),
+		Text = "",
+		BackgroundColor3 = options.ButtonColor or theme.Accent,
+		TextColor3 = theme.AccentText,
+		BorderSizePixel = 0,
+		ZIndex = 104,
+		Parent = inputPanel,
+	}, { corner(11), stroke(theme.Stroke, 0.72, 1) })
+	applyWindowAssetTexture(scope, unlockButton, options.ButtonTextureAsset or "button-texture", {
+		Radius = 11,
+		Transparency = options.ButtonTextureTransparency or 0.52,
+	})
+	createIcon(scope, options.ButtonIcon or "lucide:check", {
+		Parent = unlockButton,
+		Position = UDim2.fromOffset(14, 12),
+		Size = UDim2.fromOffset(18, 18),
+		Color = theme.AccentText,
+		ZIndex = 106,
+	})
+	makeText({
+		Name = "UnlockText",
+		Position = UDim2.fromOffset(42, 0),
+		Size = UDim2.new(1, -56, 1, 0),
+		Text = options.ButtonText or "Unlock",
+		TextColor3 = theme.AccentText,
+		TextSize = 14,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		FontFace = Font.new("rbxasset://fonts/families/BuilderSans.json", Enum.FontWeight.Bold),
+		ZIndex = 106,
+		Parent = unlockButton,
+	})
+	addButtonMotion(unlockButton, options.ButtonColor or theme.Accent, options.ButtonHoverColor or theme.AccentHover)
+
+	if options.GetKeyText or options.GetKeyCallback or options.GetKeyUrl then
+		local getKey = makeButton({
+			Name = "GetKeyButton",
+			Position = UDim2.fromOffset(0, 104),
+			Size = UDim2.new(1, 0, 0, 32),
+			Text = tostring(options.GetKeyText or "Get key"),
+			TextColor3 = theme.Accent,
+			TextSize = 13,
+			BackgroundColor3 = theme.Control,
+			BackgroundTransparency = theme.ControlTransparency,
+			BorderSizePixel = 0,
+			ZIndex = 104,
+			Parent = inputPanel,
+		}, { corner(9), stroke(theme.Stroke, 0.32, 1) })
+		applyControlTexture(scope, getKey, {
+			Radius = 9,
+			TextureTransparency = 0.88,
+		})
+		addButtonMotion(getKey, theme.Control, theme.SurfaceAlt)
+		getKey.MouseButton1Click:Connect(function()
+			safeCall(options.GetKeyCallback, options.GetKeyUrl)
+			if options.GetKeyUrl and typeof(setclipboard) == "function" then
+				pcall(setclipboard, options.GetKeyUrl)
+				status.Text = "Key link copied."
+			end
+		end)
+	end
+
+	local loadingPanel = new("Frame", {
+		Name = "LoadingPanel",
+		Position = UDim2.fromOffset(20, 160),
+		Size = UDim2.new(1, -40, 0, 130),
+		BackgroundColor3 = theme.Surface,
+		BackgroundTransparency = theme.ControlTransparency,
+		BorderSizePixel = 0,
+		ClipsDescendants = true,
+		Visible = not enabled,
+		ZIndex = 103,
+		Parent = card,
+	}, { corner(14), stroke(theme.Stroke, 0.24, 1) })
+	applyWindowAssetTexture(scope, loadingPanel, options.LoadingTextureAsset or "loading-card-texture", {
+		Radius = 14,
+		Transparency = options.LoadingTextureTransparency or 0.48,
+	})
+	local spinner = new("Frame", {
+		Name = "LoaderSpinner",
+		Position = UDim2.fromOffset(20, 28),
+		Size = UDim2.fromOffset(42, 42),
+		BackgroundTransparency = 1,
+		ZIndex = 105,
+		Parent = loadingPanel,
+	})
+	for index = 1, 8 do
+		local angle = math.rad((index - 1) * 45)
+		new("Frame", {
+			Name = "Dot",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromOffset(21 + math.cos(angle) * 16, 21 + math.sin(angle) * 16),
+			Size = UDim2.fromOffset(5, 5),
+			BackgroundColor3 = theme.Accent,
+			BackgroundTransparency = 0.08 + index * 0.08,
+			BorderSizePixel = 0,
+			ZIndex = 106,
+			Parent = spinner,
+		}, { corner(3) })
+	end
+	makeText({
+		Name = "LoadingTitle",
+		Position = UDim2.fromOffset(76, 24),
+		Size = UDim2.new(1, -96, 0, 26),
+		Text = options.LoadingTitle or "Loading UI Library",
+		TextColor3 = theme.Text,
+		TextSize = 15,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		FontFace = Font.new("rbxasset://fonts/families/BuilderSans.json", Enum.FontWeight.Bold),
+		ZIndex = 105,
+		Parent = loadingPanel,
+	})
+	makeText({
+		Name = "LoadingContent",
+		Position = UDim2.fromOffset(76, 50),
+		Size = UDim2.new(1, -96, 0, 36),
+		Text = options.LoadingContent or "Preparing textures and window assets.",
+		TextColor3 = theme.MutedText,
+		TextSize = 12,
+		TextWrapped = true,
+		ZIndex = 105,
+		Parent = loadingPanel,
+	})
+	local progressRail = new("Frame", {
+		Name = "Progress",
+		Position = UDim2.fromOffset(20, 104),
+		Size = UDim2.new(1, -40, 0, 5),
+		BackgroundColor3 = Color3.fromRGB(222, 232, 244),
+		BackgroundTransparency = 0.16,
+		BorderSizePixel = 0,
+		ZIndex = 105,
+		Parent = loadingPanel,
+	}, { corner(3) })
+	local progressFill = new("Frame", {
+		Name = "Fill",
+		Size = UDim2.fromScale(0.08, 1),
+		BackgroundColor3 = theme.Accent,
+		BorderSizePixel = 0,
+		ZIndex = 106,
+		Parent = progressRail,
+	}, { corner(3) })
+
+	local controller = {
+		Gui = screenGui,
+		Card = card,
+		KeyBox = keyBox,
+		Unlocked = false,
+		ValidKey = nil,
+	}
+	local alive = true
+	local loadingStarted = false
+
+	local function trim(value)
+		return (string.match(tostring(value or ""), "^%s*(.-)%s*$"))
+	end
+	local function matchesKey(text)
+		text = trim(text)
+		if enabled == false then
+			return true
+		end
+		if options.Validate then
+			local ok, valid = pcall(options.Validate, text)
+			return ok and valid == true
+		end
+		if options.Validator then
+			local ok, valid = pcall(options.Validator, text)
+			return ok and valid == true
+		end
+		local keys = options.Keys or options.ValidKeys
+		if typeof(keys) == "table" then
+			for _, key in pairs(keys) do
+				if text == tostring(key) then
+					return true
+				end
+			end
+			return false
+		end
+		return text == tostring(options.Key or options.Password or "moreui")
+	end
+	local function showInvalid()
+		status.Text = options.InvalidText or "Invalid key."
+		status.TextColor3 = theme.Danger
+		local boxStroke = keyBox:FindFirstChildOfClass("UIStroke")
+		if boxStroke then
+			tween(boxStroke, Fast, { Color = theme.Danger, Transparency = 0.04 })
+		end
+		local original = card.Position
+		task.spawn(function()
+			for _, offset in ipairs({ -6, 6, -3, 3, 0 }) do
+				if not card.Parent then
+					return
+				end
+				tween(card, Fast, {
+					Position = UDim2.new(
+						original.X.Scale,
+						original.X.Offset + offset,
+						original.Y.Scale,
+						original.Y.Offset
+					),
+				})
+				task.wait(0.045)
+			end
+		end)
+		task.delay(0.55, function()
+			if boxStroke and boxStroke.Parent then
+				tween(boxStroke, Smooth, { Color = theme.Stroke, Transparency = 0.18 })
+			end
+			if status.Parent and not controller.Unlocked then
+				status.Text = options.StatusText or "Enter your key to continue."
+				status.TextColor3 = theme.MutedText
+			end
+		end)
+	end
+	local function startLoading()
+		if loadingStarted then
+			return
+		end
+		loadingStarted = true
+		inputPanel.Visible = false
+		loadingPanel.Visible = true
+		status.Text = options.SuccessText or "Key accepted."
+		status.TextColor3 = theme.Success
+		progressFill.Size = UDim2.fromScale(0.08, 1)
+		tween(
+			progressFill,
+			TweenInfo.new(options.LoadingDuration or 1.15, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
+			{
+				Size = UDim2.fromScale(1, 1),
+			}
+		)
+	end
+	function controller:Unlock(keyText)
+		if self.Unlocked then
+			return
+		end
+		self.Unlocked = true
+		self.ValidKey = keyText
+		startLoading()
+		safeCall(options.Callback or options.OnUnlock, keyText, self)
+	end
+	function controller:Close()
+		alive = false
+		if screenGui.Parent then
+			tween(scale, Fast, { Scale = 0.96 })
+			tween(card, Fast, { Position = UDim2.fromScale(0.5, 0.54), BackgroundTransparency = 1 })
+			tween(shade, Fast, { BackgroundTransparency = 1 })
+			task.delay(0.16, function()
+				if screenGui.Parent then
+					screenGui:Destroy()
+				end
+			end)
+		end
+	end
+	function controller:Wait()
+		while screenGui.Parent and not self.Unlocked do
+			task.wait()
+		end
+		if screenGui.Parent then
+			task.wait(options.LoadingDuration or 1.15)
+			if options.AutoClose ~= false then
+				self:Close()
+			end
+		end
+		return self.Unlocked, self.ValidKey
+	end
+
+	local function tryUnlock()
+		local keyText = trim(keyBox.Text)
+		if matchesKey(keyText) then
+			controller:Unlock(keyText)
+		else
+			showInvalid()
+		end
+	end
+	unlockButton.MouseButton1Click:Connect(tryUnlock)
+	keyBox.FocusLost:Connect(function(enterPressed)
+		if enterPressed then
+			tryUnlock()
+		end
+	end)
+
+	local function animateShade()
+		if not alive or not shadeGradient or not shadeGradient.Parent then
+			return
+		end
+		shadeGradient.Offset = Vector2.new(-0.6, 0)
+		local sheetTween = tween(shadeGradient, TweenInfo.new(4.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+			Offset = Vector2.new(0.6, 0.08),
+			Rotation = 28,
+		})
+		local connection
+		connection = sheetTween.Completed:Connect(function()
+			if connection then
+				connection:Disconnect()
+			end
+			animateShade()
+		end)
+	end
+	local function animateSpinner()
+		if not alive or not spinner.Parent then
+			return
+		end
+		spinner.Rotation = 0
+		local spinTween = tween(spinner, TweenInfo.new(0.9, Enum.EasingStyle.Linear), { Rotation = 360 })
+		local connection
+		connection = spinTween.Completed:Connect(function()
+			if connection then
+				connection:Disconnect()
+			end
+			animateSpinner()
+		end)
+	end
+	animateShade()
+	animateSpinner()
+	if not enabled then
+		task.defer(function()
+			controller:Unlock("")
+		end)
+	end
+
+	return controller
+end
+
+function MoreUI:KeySystem(options)
+	local controller = self:ShowKeySystem(options)
+	if not controller then
+		return false
+	end
+	return controller:Wait()
 end
 
 function MoreUI:Dialog(options)
@@ -3198,10 +3823,10 @@ function MoreUI:_attachElementMethods(container, content)
 			Radius = 11,
 			TextureTransparency = 0.9,
 		})
-		if options.TextureAsset then
-			applyWindowAssetTexture(library, button, options.TextureAsset, {
+		if options.TextureAsset ~= false then
+			applyWindowAssetTexture(library, button, options.TextureAsset or "button-texture", {
 				Radius = 11,
-				Transparency = options.TextureTransparency or 0.88,
+				Transparency = options.TextureTransparency or 0.56,
 			})
 		end
 		if options.Icon then
@@ -3235,16 +3860,59 @@ function MoreUI:_attachElementMethods(container, content)
 		options = options or {}
 		options.Color = options.Color or theme.Accent
 		options.Height = options.Height or 52
+		if options.TextureAsset == nil then
+			options.TextureAsset = "highlight-button-texture"
+		end
+		if options.TextureTransparency == nil then
+			options.TextureTransparency = 0.34
+		end
 		local element = container:AddButton(options)
-		new("Frame", {
-			Position = UDim2.fromOffset(8, 11),
-			Size = UDim2.new(0, 3, 1, -22),
-			BackgroundColor3 = options.HighlightColor or Color3.fromRGB(255, 255, 255),
-			BackgroundTransparency = 0.18,
+		local glow = new("Frame", {
+			Name = "HighlightGlow",
+			Size = UDim2.fromScale(1, 1),
+			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
 			ZIndex = 7,
 			Parent = element.Button,
+		}, {
+			corner(11),
+			new("UIGradient", {
+				Rotation = 0,
+				Color = ColorSequence.new({
+					ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+					ColorSequenceKeypoint.new(0.45, options.Color or theme.Accent),
+					ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255)),
+				}),
+				Transparency = NumberSequence.new({
+					NumberSequenceKeypoint.new(0, 0.76),
+					NumberSequenceKeypoint.new(0.52, 0.94),
+					NumberSequenceKeypoint.new(1, 0.72),
+				}),
+			}),
+		})
+		new("Frame", {
+			Name = "HighlightBar",
+			Position = UDim2.fromOffset(8, 11),
+			Size = UDim2.new(0, 3, 1, -22),
+			BackgroundColor3 = options.HighlightColor or Color3.fromRGB(255, 255, 255),
+			BackgroundTransparency = 0.12,
+			BorderSizePixel = 0,
+			ZIndex = 8,
+			Parent = element.Button,
 		}, { corner(2) })
+		local glowGradient = glow:FindFirstChildOfClass("UIGradient")
+		if glowGradient then
+			task.spawn(function()
+				while glowGradient.Parent do
+					glowGradient.Offset = Vector2.new(-0.6, 0)
+					local sheetTween =
+						tween(glowGradient, TweenInfo.new(2.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+							Offset = Vector2.new(0.6, 0),
+						})
+					sheetTween.Completed:Wait()
+				end
+			end)
+		end
 		return element
 	end
 

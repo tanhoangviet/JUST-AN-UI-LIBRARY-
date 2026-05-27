@@ -1,125 +1,15 @@
 -- Demo LocalScript for More UI Library.
 -- Executor use: loads the library from GitHub before creating the UI.
 
-local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
-
 local LOAD_URL = "https://raw.githubusercontent.com/tanhoangviet/JUST-AN-UI-LIBRARY-/main/MoreUILibrary.lua"
 local KEY_SYSTEM = {
 	Enabled = true,
 	Key = "moreui",
 	Title = "More UI Library",
 	Subtitle = "Windows 11 loader",
+	LoadingTitle = "Loading More UI",
+	LoadingContent = "Downloading textures and preparing the window.",
 }
-
-local playerGui = Players.LocalPlayer and Players.LocalPlayer:FindFirstChildOfClass("PlayerGui")
-local loaderParent = playerGui or game:GetService("CoreGui")
-local loaderGui = Instance.new("ScreenGui")
-loaderGui.Name = "MoreUILibraryLoader"
-loaderGui.IgnoreGuiInset = true
-loaderGui.ResetOnSpawn = false
-loaderGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-loaderGui.Parent = loaderParent
-
-local shade = Instance.new("Frame")
-shade.Size = UDim2.fromScale(1, 1)
-shade.BackgroundColor3 = Color3.fromRGB(10, 12, 18)
-shade.BackgroundTransparency = 0.28
-shade.BorderSizePixel = 0
-shade.Parent = loaderGui
-
-local card = Instance.new("Frame")
-card.AnchorPoint = Vector2.new(0.5, 0.5)
-card.Position = UDim2.fromScale(0.5, 0.5)
-card.Size = UDim2.fromOffset(340, 188)
-card.BackgroundColor3 = Color3.fromRGB(246, 250, 255)
-card.BorderSizePixel = 0
-card.Parent = shade
-Instance.new("UICorner", card).CornerRadius = UDim.new(0, 18)
-local cardStroke = Instance.new("UIStroke")
-cardStroke.Color = Color3.fromRGB(215, 224, 238)
-cardStroke.Transparency = 0.18
-cardStroke.Parent = card
-
-local title = Instance.new("TextLabel")
-title.BackgroundTransparency = 1
-title.Position = UDim2.fromOffset(20, 18)
-title.Size = UDim2.new(1, -40, 0, 28)
-title.FontFace = Font.new("rbxasset://fonts/families/BuilderSans.json", Enum.FontWeight.Bold)
-title.Text = KEY_SYSTEM.Title
-title.TextColor3 = Color3.fromRGB(22, 28, 36)
-title.TextSize = 18
-title.TextXAlignment = Enum.TextXAlignment.Left
-title.Parent = card
-
-local status = Instance.new("TextLabel")
-status.BackgroundTransparency = 1
-status.Position = UDim2.fromOffset(20, 48)
-status.Size = UDim2.new(1, -40, 0, 24)
-status.FontFace = Font.new("rbxasset://fonts/families/BuilderSans.json", Enum.FontWeight.Medium)
-status.Text = KEY_SYSTEM.Enabled and "Enter key to continue" or "Loading library..."
-status.TextColor3 = Color3.fromRGB(88, 96, 110)
-status.TextSize = 13
-status.TextXAlignment = Enum.TextXAlignment.Left
-status.Parent = card
-
-local keyBox = Instance.new("TextBox")
-keyBox.Position = UDim2.fromOffset(20, 82)
-keyBox.Size = UDim2.new(1, -40, 0, 38)
-keyBox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-keyBox.TextColor3 = Color3.fromRGB(25, 30, 38)
-keyBox.PlaceholderColor3 = Color3.fromRGB(120, 130, 145)
-keyBox.PlaceholderText = "Key"
-keyBox.Text = ""
-keyBox.ClearTextOnFocus = false
-keyBox.TextSize = 14
-keyBox.FontFace = Font.new("rbxasset://fonts/families/BuilderSans.json", Enum.FontWeight.Medium)
-keyBox.Parent = card
-Instance.new("UICorner", keyBox).CornerRadius = UDim.new(0, 10)
-local boxStroke = Instance.new("UIStroke")
-boxStroke.Color = Color3.fromRGB(214, 222, 234)
-boxStroke.Transparency = 0.12
-boxStroke.Parent = keyBox
-
-local continueButton = Instance.new("TextButton")
-continueButton.Position = UDim2.new(1, -122, 1, -52)
-continueButton.Size = UDim2.fromOffset(102, 34)
-continueButton.BackgroundColor3 = Color3.fromRGB(0, 120, 212)
-continueButton.Text = KEY_SYSTEM.Enabled and "Unlock" or "Loading"
-continueButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-continueButton.TextSize = 13
-continueButton.FontFace = Font.new("rbxasset://fonts/families/BuilderSans.json", Enum.FontWeight.Bold)
-continueButton.AutoButtonColor = false
-continueButton.Parent = card
-Instance.new("UICorner", continueButton).CornerRadius = UDim.new(0, 9)
-
-local unlocked = not KEY_SYSTEM.Enabled
-local function tryUnlock()
-	if not KEY_SYSTEM.Enabled or keyBox.Text == KEY_SYSTEM.Key then
-		unlocked = true
-		status.Text = "Loading library..."
-		keyBox.Visible = false
-		continueButton.Text = "Loading"
-	else
-		status.Text = "Invalid key"
-		TweenService:Create(boxStroke, TweenInfo.new(0.12), { Color = Color3.fromRGB(210, 47, 36) }):Play()
-		task.delay(0.5, function()
-			if boxStroke.Parent then
-				TweenService:Create(boxStroke, TweenInfo.new(0.18), { Color = Color3.fromRGB(214, 222, 234) }):Play()
-			end
-		end)
-	end
-end
-continueButton.MouseButton1Click:Connect(tryUnlock)
-keyBox.FocusLost:Connect(function(enterPressed)
-	if enterPressed then
-		tryUnlock()
-	end
-end)
-
-while not unlocked do
-	task.wait()
-end
 
 local source
 local ok, result = pcall(function()
@@ -127,8 +17,6 @@ local ok, result = pcall(function()
 end)
 if ok then
 	source = result
-else
-	status.Text = "HttpGet failed, using local module"
 end
 
 local MoreUI = source and typeof(loadstring) == "function" and loadstring(source)() or nil
@@ -136,9 +24,16 @@ if not MoreUI then
 	MoreUI = require(script.Parent.MoreUILibrary)
 end
 
-status.Text = "Starting UI..."
-task.wait(0.25)
-loaderGui:Destroy()
+MoreUI:KeySystem({
+	Enabled = KEY_SYSTEM.Enabled,
+	Key = KEY_SYSTEM.Key,
+	Title = KEY_SYSTEM.Title,
+	Subtitle = KEY_SYSTEM.Subtitle,
+	LoadingTitle = KEY_SYSTEM.LoadingTitle,
+	LoadingContent = KEY_SYSTEM.LoadingContent,
+	IconHubName = "More UI Library",
+	Window11Icons = true,
+})
 
 local window = MoreUI:CreateWindow({
 	Title = "More UI Library",

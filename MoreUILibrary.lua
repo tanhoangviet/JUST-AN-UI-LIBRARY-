@@ -2331,9 +2331,11 @@ function MoreUI:ShowKeySystem(options)
 		parent = playerGui or game:GetService("CoreGui")
 	end
 
+	local hasGetKey = options.GetKeyText or options.GetKeyCallback or options.GetKeyUrl
 	local viewport = getViewport()
-	local width = math.min(options.Width or 430, math.max(300, viewport.X - 32))
-	local height = math.min(options.Height or (enabled and 356 or 292), math.max(260, viewport.Y - 36))
+	local width = math.min(options.Width or 400, math.max(300, viewport.X - 32))
+	local height =
+		math.min(options.Height or (enabled and (hasGetKey and 430 or 386) or 336), math.max(288, viewport.Y - 36))
 	local screenGui = new("ScreenGui", {
 		Name = options.GuiName or ((options.Name or "MoreUI") .. "KeySystem"),
 		IgnoreGuiInset = true,
@@ -2346,7 +2348,7 @@ function MoreUI:ShowKeySystem(options)
 		Name = "Shade",
 		Size = UDim2.fromScale(1, 1),
 		BackgroundColor3 = Color3.fromRGB(10, 13, 20),
-		BackgroundTransparency = options.OverlayTransparency or 0.24,
+		BackgroundTransparency = options.OverlayTransparency or 0.18,
 		BorderSizePixel = 0,
 		ZIndex = 100,
 		Parent = screenGui,
@@ -2361,9 +2363,9 @@ function MoreUI:ShowKeySystem(options)
 				ColorSequenceKeypoint.new(1, Color3.fromRGB(205, 238, 255)),
 			}),
 			Transparency = NumberSequence.new({
-				NumberSequenceKeypoint.new(0, 0.35),
-				NumberSequenceKeypoint.new(0.5, 0.72),
-				NumberSequenceKeypoint.new(1, 0.48),
+				NumberSequenceKeypoint.new(0, 0.42),
+				NumberSequenceKeypoint.new(0.5, 0.78),
+				NumberSequenceKeypoint.new(1, 0.56),
 			}),
 		}),
 	})
@@ -2386,7 +2388,7 @@ function MoreUI:ShowKeySystem(options)
 	applyGlass(card, theme, 18, "strong")
 	applyWindowAssetTexture(scope, card, options.TextureAsset or "key-card-texture", {
 		Radius = 18,
-		Transparency = options.TextureTransparency or 0.38,
+		Transparency = options.TextureTransparency or 0.18,
 	})
 	local scale = new("UIScale", { Scale = 0.96, Parent = card })
 	tween(card, WindowAnim, { Position = UDim2.fromScale(0.5, 0.5) })
@@ -2395,44 +2397,46 @@ function MoreUI:ShowKeySystem(options)
 	local banner = new("Frame", {
 		Name = "Banner",
 		Position = UDim2.fromOffset(14, 14),
-		Size = UDim2.new(1, -28, 0, 106),
+		Size = UDim2.new(1, -28, 0, 120),
 		BackgroundColor3 = theme.AccentSoft,
+		BackgroundTransparency = 0.08,
 		BorderSizePixel = 0,
 		ClipsDescendants = true,
 		ZIndex = 102,
 		Parent = card,
-	}, { corner(15), stroke(theme.Stroke, 0.44, 1) })
+	}, { corner(15), stroke(Color3.fromRGB(255, 255, 255), 0.58, 1) })
 	applyWindowAssetTexture(scope, banner, options.BannerAsset or "key-banner-texture", {
 		Radius = 15,
-		Transparency = options.BannerTransparency or 0.18,
+		Transparency = options.BannerTransparency or 0.04,
 	})
 
 	local thumbnail = new("Frame", {
 		Name = "Thumbnail",
-		Position = UDim2.fromOffset(18, 18),
-		Size = UDim2.fromOffset(70, 70),
+		Position = UDim2.fromOffset(18, 20),
+		Size = UDim2.fromOffset(66, 66),
 		BackgroundColor3 = theme.Surface,
+		BackgroundTransparency = 0.08,
 		BorderSizePixel = 0,
 		ZIndex = 104,
 		Parent = banner,
 	}, { corner(16), stroke(theme.Accent, 0.12, 2) })
 	applyWindowAssetTexture(scope, thumbnail, options.ThumbnailAsset or "key-thumbnail-texture", {
 		Radius = 16,
-		Transparency = options.ThumbnailTransparency or 0.08,
+		Transparency = options.ThumbnailTransparency or 0,
 	})
 	createIcon(scope, options.Icon or MoreUI.Window11Icon("keyboard"), {
 		Parent = thumbnail,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(30, 30),
-		Color = theme.Accent,
+		Size = UDim2.fromOffset(24, 24),
+		Color = Color3.fromRGB(255, 255, 255),
 		ZIndex = 106,
 	})
 
 	makeText({
 		Name = "Title",
-		Position = UDim2.fromOffset(104, 22),
-		Size = UDim2.new(1, -124, 0, 28),
+		Position = UDim2.fromOffset(100, 23),
+		Size = UDim2.new(1, -120, 0, 28),
 		Text = options.Title or "More UI Library",
 		TextColor3 = theme.Text,
 		TextSize = 18,
@@ -2443,8 +2447,8 @@ function MoreUI:ShowKeySystem(options)
 	})
 	makeText({
 		Name = "Subtitle",
-		Position = UDim2.fromOffset(104, 52),
-		Size = UDim2.new(1, -124, 0, 38),
+		Position = UDim2.fromOffset(100, 52),
+		Size = UDim2.new(1, -120, 0, 34),
 		Text = options.Subtitle or "Secure Windows 11 loader",
 		TextColor3 = theme.MutedText,
 		TextSize = 13,
@@ -2453,10 +2457,31 @@ function MoreUI:ShowKeySystem(options)
 		ZIndex = 105,
 		Parent = banner,
 	})
+	local bannerPill = new("Frame", {
+		Name = "StatusPill",
+		Position = UDim2.fromOffset(100, 88),
+		Size = UDim2.fromOffset(112, 22),
+		BackgroundColor3 = theme.Surface,
+		BackgroundTransparency = 0.1,
+		BorderSizePixel = 0,
+		ZIndex = 105,
+		Parent = banner,
+	}, { corner(11), stroke(theme.Stroke, 0.42, 1) })
+	makeText({
+		Position = UDim2.fromOffset(10, 0),
+		Size = UDim2.new(1, -20, 1, 0),
+		Text = options.BadgeText or "Key Access",
+		TextColor3 = theme.Accent,
+		TextSize = 11,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		FontFace = Font.new("rbxasset://fonts/families/BuilderSans.json", Enum.FontWeight.Bold),
+		ZIndex = 106,
+		Parent = bannerPill,
+	})
 
 	local status = makeText({
 		Name = "Status",
-		Position = UDim2.fromOffset(26, 130),
+		Position = UDim2.fromOffset(24, 146),
 		Size = UDim2.new(1, -52, 0, 22),
 		Text = enabled and (options.StatusText or "Enter your key to continue.") or "Preparing library...",
 		TextColor3 = theme.MutedText,
@@ -2468,17 +2493,37 @@ function MoreUI:ShowKeySystem(options)
 
 	local inputPanel = new("Frame", {
 		Name = "InputPanel",
-		Position = UDim2.fromOffset(20, 160),
-		Size = UDim2.new(1, -40, 0, 128),
-		BackgroundTransparency = 1,
+		Position = UDim2.fromOffset(18, 174),
+		Size = UDim2.new(1, -36, 0, hasGetKey and 198 or 154),
+		BackgroundColor3 = theme.Surface,
+		BackgroundTransparency = theme.GlassSoftTransparency,
+		BorderSizePixel = 0,
+		ClipsDescendants = true,
 		ZIndex = 103,
 		Visible = enabled,
 		Parent = card,
+	}, { corner(15), stroke(theme.Stroke, 0.26, 1) })
+	applyControlTexture(scope, inputPanel, {
+		Radius = 15,
+		TextureTransparency = 0.88,
+		AllowLayoutTexture = true,
+	})
+	makeText({
+		Name = "KeyLabel",
+		Position = UDim2.fromOffset(14, 8),
+		Size = UDim2.new(1, -28, 0, 22),
+		Text = options.KeyLabel or "Access key",
+		TextColor3 = theme.Text,
+		TextSize = 13,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		FontFace = Font.new("rbxasset://fonts/families/BuilderSans.json", Enum.FontWeight.Bold),
+		ZIndex = 104,
+		Parent = inputPanel,
 	})
 	local keyBox = new("TextBox", {
 		Name = "KeyBox",
-		Position = UDim2.fromOffset(0, 0),
-		Size = UDim2.new(1, 0, 0, 42),
+		Position = UDim2.fromOffset(12, 38),
+		Size = UDim2.new(1, -24, 0, 42),
 		BackgroundColor3 = theme.Control,
 		BackgroundTransparency = theme.ControlTransparency,
 		BorderSizePixel = 0,
@@ -2500,8 +2545,8 @@ function MoreUI:ShowKeySystem(options)
 
 	local unlockButton = makeButton({
 		Name = "UnlockButton",
-		Position = UDim2.fromOffset(0, 54),
-		Size = UDim2.new(1, 0, 0, 42),
+		Position = UDim2.fromOffset(12, 92),
+		Size = UDim2.new(1, -24, 0, 42),
 		Text = "",
 		BackgroundColor3 = options.ButtonColor or theme.Accent,
 		TextColor3 = theme.AccentText,
@@ -2537,8 +2582,8 @@ function MoreUI:ShowKeySystem(options)
 	if options.GetKeyText or options.GetKeyCallback or options.GetKeyUrl then
 		local getKey = makeButton({
 			Name = "GetKeyButton",
-			Position = UDim2.fromOffset(0, 104),
-			Size = UDim2.new(1, 0, 0, 32),
+			Position = UDim2.fromOffset(12, 146),
+			Size = UDim2.new(1, -24, 0, 34),
 			Text = tostring(options.GetKeyText or "Get key"),
 			TextColor3 = theme.Accent,
 			TextSize = 13,
@@ -2564,10 +2609,10 @@ function MoreUI:ShowKeySystem(options)
 
 	local loadingPanel = new("Frame", {
 		Name = "LoadingPanel",
-		Position = UDim2.fromOffset(20, 160),
-		Size = UDim2.new(1, -40, 0, 130),
+		Position = UDim2.fromOffset(18, 174),
+		Size = UDim2.new(1, -36, 0, 146),
 		BackgroundColor3 = theme.Surface,
-		BackgroundTransparency = theme.ControlTransparency,
+		BackgroundTransparency = theme.GlassSoftTransparency,
 		BorderSizePixel = 0,
 		ClipsDescendants = true,
 		Visible = not enabled,
@@ -2576,12 +2621,12 @@ function MoreUI:ShowKeySystem(options)
 	}, { corner(14), stroke(theme.Stroke, 0.24, 1) })
 	applyWindowAssetTexture(scope, loadingPanel, options.LoadingTextureAsset or "loading-card-texture", {
 		Radius = 14,
-		Transparency = options.LoadingTextureTransparency or 0.48,
+		Transparency = options.LoadingTextureTransparency or 0.2,
 	})
 	local spinner = new("Frame", {
 		Name = "LoaderSpinner",
-		Position = UDim2.fromOffset(20, 28),
-		Size = UDim2.fromOffset(42, 42),
+		Position = UDim2.fromOffset(20, 34),
+		Size = UDim2.fromOffset(38, 38),
 		BackgroundTransparency = 1,
 		ZIndex = 105,
 		Parent = loadingPanel,
@@ -2591,7 +2636,7 @@ function MoreUI:ShowKeySystem(options)
 		new("Frame", {
 			Name = "Dot",
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromOffset(21 + math.cos(angle) * 16, 21 + math.sin(angle) * 16),
+			Position = UDim2.fromOffset(19 + math.cos(angle) * 14, 19 + math.sin(angle) * 14),
 			Size = UDim2.fromOffset(5, 5),
 			BackgroundColor3 = theme.Accent,
 			BackgroundTransparency = 0.08 + index * 0.08,
@@ -2602,7 +2647,7 @@ function MoreUI:ShowKeySystem(options)
 	end
 	makeText({
 		Name = "LoadingTitle",
-		Position = UDim2.fromOffset(76, 24),
+		Position = UDim2.fromOffset(72, 30),
 		Size = UDim2.new(1, -96, 0, 26),
 		Text = options.LoadingTitle or "Loading UI Library",
 		TextColor3 = theme.Text,
@@ -2614,7 +2659,7 @@ function MoreUI:ShowKeySystem(options)
 	})
 	makeText({
 		Name = "LoadingContent",
-		Position = UDim2.fromOffset(76, 50),
+		Position = UDim2.fromOffset(72, 56),
 		Size = UDim2.new(1, -96, 0, 36),
 		Text = options.LoadingContent or "Preparing textures and window assets.",
 		TextColor3 = theme.MutedText,
@@ -2625,7 +2670,7 @@ function MoreUI:ShowKeySystem(options)
 	})
 	local progressRail = new("Frame", {
 		Name = "Progress",
-		Position = UDim2.fromOffset(20, 104),
+		Position = UDim2.fromOffset(20, 114),
 		Size = UDim2.new(1, -40, 0, 5),
 		BackgroundColor3 = Color3.fromRGB(222, 232, 244),
 		BackgroundTransparency = 0.16,

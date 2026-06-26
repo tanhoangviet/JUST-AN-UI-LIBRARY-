@@ -33,14 +33,18 @@ MoreUI:KeySystem({
 
 local window = MoreUI:CreateWindow({
 	Title = "My Hub",
-	Subtitle = "Liquid Glass",
+	Subtitle = "Floating Windows menu",
+	Size = UDim2.fromOffset(430, 500),
+	MobileWidth = 420,
+	MobileHeight = 460,
 	ToggleKey = Enum.KeyCode.RightShift,
-	TopInset = 74,
+	TopInset = 72,
 	FloatingPlus = true,
-	DpiScale = 0.5,
-	MobileDpiScale = 0.72,
+	DpiScale = 1,
+	MobileDpiScale = 0.95,
 	BackgroundBlurSize = 10,
 	OpenButtonPosition = UDim2.fromOffset(92, 86),
+	OpenButtonSize = UDim2.fromOffset(42, 42),
 	SidebarCompact = true,
 	IconHubName = "My Hub",
 	Window11Icons = true,
@@ -77,9 +81,9 @@ section:AddToggle({
 - Mobile responsive bottom-sheet layout.
 - Opens from below with animation.
 - Smaller default window and lighter corner radius.
-- `FloatingPlus = true` turns tabs into a compact app dock. Each tab opens its page inside a floating page window with its own topbar.
+- `FloatingPlus = true` turns the library into a small Windows Start-menu style floating panel with an icon-only app dock. Each tab opens its page inside a compact floating page window.
 - In Floating+ mode, drag the page topbar downward to collapse that page into a small bottom strip; tap the app tab again to restore it.
-- `DpiScale` reduces the desktop UI scale. The demo uses `0.5`; `MobileDpiScale` defaults higher so touch targets remain usable.
+- Use `Size` to control the menu footprint. The demo uses `430x500` with `DpiScale = 1`, so it stays crisp instead of scaling down a huge window.
 - `TopInset` keeps the UI below the Roblox topbar. Use `64-82` on mobile landscape; increase only if it touches the Roblox top menu.
 - Top-left open button defaults below the Roblox menu area and uses a Windows-style icon.
 - The floating open button now uses `open-button-texture` by default for a linked-button style glass surface.

@@ -11,7 +11,7 @@ local LocalPlayer = Players.LocalPlayer
 
 local MoreUI = {}
 MoreUI.__index = MoreUI
-MoreUI.Version = "2.3.0"
+MoreUI.Version = "2.3.1"
 MoreUI.IconPacks = {}
 MoreUI.IconUrlTemplates = {
 	lucide = "https://raw.githubusercontent.com/tijnepema/lucide-roblox/master/icons/processed/{size}px/{name}.png",
@@ -1355,9 +1355,9 @@ function MoreUI:CreateWindow(options)
 		or options.WindowMode == "FloatingPlus"
 		or options.Mode == "FloatingPlus"
 	library.SidebarCompact = library.FloatingPlus or options.SidebarCompact == true or options.CompactSidebar == true
-	library.DpiScale = tonumber(options.DpiScale or options.DPI or options.Scale) or (library.FloatingPlus and 0.5 or 1)
+	library.DpiScale = tonumber(options.DpiScale or options.DPI or options.Scale) or 1
 	library.MobileDpiScale = tonumber(options.MobileDpiScale or options.MobileDPI)
-		or (library.FloatingPlus and math.max(library.DpiScale, 0.72) or library.DpiScale)
+		or (library.FloatingPlus and math.max(library.DpiScale, 0.95) or library.DpiScale)
 	library.Open = options.Open ~= false
 	library.ScreenGui = nil
 	library._connections = {}
@@ -2071,6 +2071,68 @@ function MoreUI:CreateWindow(options)
 		local width
 		local height
 		local topInset = options.TopInset or (self.FloatingPlus and 74 or 64)
+		local tabPadding = tabbar:FindFirstChildOfClass("UIPadding")
+		if self.FloatingPlus then
+			local requested = options.Size or (mobile and UDim2.fromOffset(420, 460) or UDim2.fromOffset(430, 500))
+			local maxWidth = math.max(320, viewport.X - 44)
+			local maxHeight = math.max(360, viewport.Y - 84)
+			local minWidth = math.min(340, maxWidth)
+			local minHeight = math.min(390, maxHeight)
+			local menuMaxWidth = math.max(minWidth, math.min(maxWidth, options.MaxWidth or 460))
+			local menuMaxHeight = math.max(minHeight, math.min(maxHeight, options.MaxHeight or 540))
+			width = math.clamp(requested.X.Offset, minWidth, menuMaxWidth)
+			height = math.clamp(requested.Y.Offset, minHeight, menuMaxHeight)
+			if mobile then
+				width = math.min(width, options.MobileWidth or 420, maxWidth)
+				height = math.min(height, options.MobileHeight or 460, maxHeight)
+			end
+
+			window.AnchorPoint = Vector2.new(0.5, 0.5)
+			self._openPosition = options.Position or UDim2.new(0.5, 0, mobile and 0.54 or 0.53, 0)
+			self._hiddenPosition = UDim2.new(0.5, 0, 1, math.floor(height * 0.55) + 58)
+
+			topbar.Size = UDim2.new(1, 0, 0, 52)
+			tabbar.Position = UDim2.fromOffset(10, 62)
+			tabbar.Size = UDim2.new(0, 54, 1, -74)
+			tabbar.ScrollingDirection = Enum.ScrollingDirection.Y
+			tabbar.UIListLayout.FillDirection = Enum.FillDirection.Vertical
+			if tabPadding then
+				tabPadding.PaddingTop = UDim.new(0, 7)
+				tabPadding.PaddingBottom = UDim.new(0, 7)
+				tabPadding.PaddingLeft = UDim.new(0, 7)
+				tabPadding.PaddingRight = UDim.new(0, 7)
+			end
+			setCanvasToContent(tabbar, "Y")
+
+			pages.Position = UDim2.fromOffset(72, 62)
+			pages.Size = UDim2.new(1, -84, 1, -74)
+			userCard.Visible = false
+			titleLabel.Size = UDim2.new(1, -(titleOffset + 110), 0, 24)
+			subtitleLabel.Size = UDim2.new(1, -(titleOffset + 110), 0, 18)
+			controlRow.Position = UDim2.new(1, 0, 0, 0)
+			controlRow.Size = UDim2.fromOffset(82, 32)
+			minimize.Size = UDim2.fromOffset(41, 32)
+			close.Size = UDim2.fromOffset(41, 32)
+			for _, tab in ipairs(self.Tabs) do
+				tab.Button.Size = UDim2.fromOffset(40, 40)
+				self:_syncTabVisual(tab)
+			end
+
+			window.Size = UDim2.fromOffset(width, height)
+			window.Position = self.Open and self._openPosition or self._hiddenPosition
+			updateShadow()
+			self:_syncFloatingPages(true)
+			if instant then
+				return
+			end
+			return
+		elseif tabPadding then
+			tabPadding.PaddingTop = UDim.new(0, 10)
+			tabPadding.PaddingBottom = UDim.new(0, 10)
+			tabPadding.PaddingLeft = UDim.new(0, 10)
+			tabPadding.PaddingRight = UDim.new(0, 10)
+		end
+
 		if mobile then
 			width = math.max(300, math.floor(viewport.X - 48))
 			height = math.max(360, math.floor(viewport.Y - topInset - 14))

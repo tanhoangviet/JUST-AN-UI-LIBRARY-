@@ -11,7 +11,7 @@ local LocalPlayer = Players.LocalPlayer
 
 local MoreUI = {}
 MoreUI.__index = MoreUI
-MoreUI.Version = "2.2.0"
+MoreUI.Version = "2.3.0"
 MoreUI.IconPacks = {}
 MoreUI.IconUrlTemplates = {
 	lucide = "https://raw.githubusercontent.com/tijnepema/lucide-roblox/master/icons/processed/{size}px/{name}.png",
@@ -1011,6 +1011,137 @@ local function addButtonMotion(button, normalColor, hoverColor, pressColor)
 	end)
 end
 
+local function isLockedOption(options)
+	return options and (options.Locked == true or options.Disabled == true)
+end
+
+local function lockedReason(options)
+	return (options and (options.LockedReason or options.LockReason or options.DisabledReason or options.Reason))
+		or "This item is locked."
+end
+
+local function notifyLocked(library, options)
+	if library and library.Notify then
+		library:Notify({
+			Title = (options and (options.LockedTitle or options.LockTitle)) or "Locked",
+			Content = lockedReason(options),
+			Icon = "lucide:lock",
+			Duration = 2.4,
+		})
+	end
+end
+
+local function applyLockedOverlay(library, target, options)
+	if not isLockedOption(options) or not target then
+		return nil
+	end
+
+	local theme = (library and library.Theme) or Theme
+	target:SetAttribute("MoreUILocked", true)
+
+	local overlay = makeButton({
+		Name = "LockedOverlay",
+		Size = UDim2.fromScale(1, 1),
+		Text = "",
+		BackgroundColor3 = theme.Surface,
+		BackgroundTransparency = options.LockedTransparency or 0.13,
+		BorderSizePixel = 0,
+		AutoButtonColor = false,
+		Active = true,
+		ZIndex = (target.ZIndex or 1) + 40,
+		Parent = target,
+	}, {
+		corner(options.Radius or theme.Radius),
+		stroke(theme.Stroke, 0.34, 1),
+	})
+	new("UIGradient", {
+		Rotation = 90,
+		Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), theme.SurfaceAlt),
+		Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.28),
+			NumberSequenceKeypoint.new(1, 0.48),
+		}),
+		Parent = overlay,
+	})
+	createIcon(library, options.LockedIcon or "lucide:lock", {
+		Parent = overlay,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = options.LockedLabel == false and UDim2.fromScale(0.5, 0.5) or UDim2.new(0, 20, 0.5, 0),
+		Size = UDim2.fromOffset(16, 16),
+		Color = theme.MutedText,
+		ZIndex = overlay.ZIndex + 1,
+	})
+	if options.LockedLabel ~= false then
+		makeText({
+			Position = UDim2.fromOffset(42, 0),
+			Size = UDim2.new(1, -54, 1, 0),
+			Text = options.LockedText or "Locked",
+			TextColor3 = theme.MutedText,
+			TextSize = 12,
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			ZIndex = overlay.ZIndex + 1,
+			Parent = overlay,
+		})
+	end
+	overlay.MouseButton1Click:Connect(function()
+		notifyLocked(library, options)
+	end)
+	return overlay
+end
+
+local function makeDraggableOpenButton(button)
+	local dragging = false
+	local dragInput
+	local startInput
+	local startPosition
+	local moved = false
+
+	button.InputBegan:Connect(function(input)
+		if
+			input.UserInputType ~= Enum.UserInputType.MouseButton1
+			and input.UserInputType ~= Enum.UserInputType.Touch
+		then
+			return
+		end
+		dragging = true
+		moved = false
+		dragInput = input
+		startInput = input.Position
+		startPosition = button.AbsolutePosition
+		button:SetAttribute("MoreUIDragged", false)
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+				dragInput = nil
+				if moved then
+					button:SetAttribute("MoreUIDragged", true)
+					task.delay(0.12, function()
+						if button.Parent then
+							button:SetAttribute("MoreUIDragged", false)
+						end
+					end)
+				end
+			end
+		end)
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if not dragging or input ~= dragInput then
+			return
+		end
+		local delta = input.Position - startInput
+		if math.abs(delta.X) > 3 or math.abs(delta.Y) > 3 then
+			moved = true
+		end
+		local viewport = getViewport()
+		local width = button.AbsoluteSize.X
+		local height = button.AbsoluteSize.Y
+		local x = math.clamp(startPosition.X + delta.X, 6, math.max(6, viewport.X - width - 6))
+		local y = math.clamp(startPosition.Y + delta.Y, 6, math.max(6, viewport.Y - height - 6))
+		button.Position = UDim2.fromOffset(x, y)
+	end)
+end
+
 local function addTitlebarButtonMotion(
 	button,
 	icon,
@@ -1219,7 +1350,14 @@ function MoreUI:CreateWindow(options)
 	library.Elements = {}
 	library.Tabs = {}
 	library.SelectedTab = nil
-	library.SidebarCompact = options.SidebarCompact == true or options.CompactSidebar == true
+	library.FloatingPlus = options.FloatingPlus == true
+		or options.Floating == true
+		or options.WindowMode == "FloatingPlus"
+		or options.Mode == "FloatingPlus"
+	library.SidebarCompact = library.FloatingPlus or options.SidebarCompact == true or options.CompactSidebar == true
+	library.DpiScale = tonumber(options.DpiScale or options.DPI or options.Scale) or (library.FloatingPlus and 0.5 or 1)
+	library.MobileDpiScale = tonumber(options.MobileDpiScale or options.MobileDPI)
+		or (library.FloatingPlus and math.max(library.DpiScale, 0.72) or library.DpiScale)
 	library.Open = options.Open ~= false
 	library.ScreenGui = nil
 	library._connections = {}
@@ -1296,8 +1434,10 @@ function MoreUI:CreateWindow(options)
 	local openButton = makeButton({
 		Name = "OpenButton",
 		AnchorPoint = Vector2.new(0, 0),
-		Position = options.OpenButtonPosition or UDim2.fromOffset(92, 86),
-		Size = options.OpenButtonSize or UDim2.fromOffset(50, 50),
+		Position = options.OpenButtonPosition
+			or (library.FloatingPlus and UDim2.fromOffset(96, 88) or UDim2.fromOffset(92, 86)),
+		Size = options.OpenButtonSize
+			or (library.FloatingPlus and UDim2.fromOffset(42, 42) or UDim2.fromOffset(50, 50)),
 		Text = "",
 		BackgroundColor3 = options.OpenButtonColor or library.Theme.Surface,
 		BackgroundTransparency = options.OpenButtonTransparency or 0.08,
@@ -1305,16 +1445,16 @@ function MoreUI:CreateWindow(options)
 		ZIndex = 80,
 		Parent = screenGui,
 	}, {
-		corner(14),
+		corner(library.FloatingPlus and 12 or 14),
 		stroke(library.Theme.Stroke, 0.18, 1),
 	})
-	applyGlass(openButton, library.Theme, 14, "soft", true)
+	applyGlass(openButton, library.Theme, library.FloatingPlus and 12 or 14, "soft", true)
 	applyControlTexture(library, openButton, {
-		Radius = 14,
+		Radius = library.FloatingPlus and 12 or 14,
 		TextureTransparency = 0.9,
 	})
 	applyWindowAssetTexture(library, openButton, options.OpenButtonTextureAsset or "open-button-texture", {
-		Radius = 14,
+		Radius = library.FloatingPlus and 12 or 14,
 		Transparency = options.OpenButtonTextureTransparency or 0.34,
 	})
 	local openIconName = defaultWindow11Option(options, "OpenIcon", "lucide:panel-top")
@@ -1325,7 +1465,7 @@ function MoreUI:CreateWindow(options)
 		Parent = openButton,
 		Position = UDim2.fromScale(0.5, 0.5),
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Size = UDim2.fromOffset(24, 24),
+		Size = UDim2.fromOffset(library.FloatingPlus and 21 or 24, library.FloatingPlus and 21 or 24),
 		Color = options.OpenButtonIconColor or library.Theme.Accent,
 		ZIndex = 81,
 	})
@@ -1335,6 +1475,9 @@ function MoreUI:CreateWindow(options)
 		options.OpenButtonHoverColor or library.Theme.SurfaceAlt,
 		options.OpenButtonDownColor or library.Theme.AccentSoft
 	)
+	if options.OpenButtonDraggable ~= false and options.DraggableOpenButton ~= false then
+		makeDraggableOpenButton(openButton)
+	end
 	library.OpenButton = openButton
 
 	local shadow = new("ImageLabel", {
@@ -1349,6 +1492,7 @@ function MoreUI:CreateWindow(options)
 		ZIndex = 1,
 		Parent = screenGui,
 	})
+	library.ShadowDpiScale = new("UIScale", { Name = "DpiScale", Scale = library.DpiScale, Parent = shadow })
 	library.Shadow = shadow
 
 	local softShadow = new("Frame", {
@@ -1362,6 +1506,7 @@ function MoreUI:CreateWindow(options)
 	}, {
 		corner(library.Theme.Radius + 4),
 	})
+	library.SoftShadowDpiScale = new("UIScale", { Name = "DpiScale", Scale = library.DpiScale, Parent = softShadow })
 	library.SoftShadow = softShadow
 
 	local window = new("Frame", {
@@ -1373,7 +1518,8 @@ function MoreUI:CreateWindow(options)
 		Parent = screenGui,
 	})
 	applyGlass(window, library.Theme, library.Theme.Radius + 2, "strong")
-	new("UIScale", { Name = "WindowScale", Scale = 1, Parent = window })
+	library.WindowScale = new("UIScale", { Name = "WindowScale", Scale = 1, Parent = window })
+	library.WindowDpiScale = new("UIScale", { Name = "DpiScale", Scale = library.DpiScale, Parent = window })
 	library.Window = window
 
 	local animatedBackground = new("Frame", {
@@ -1540,7 +1686,7 @@ function MoreUI:CreateWindow(options)
 	local titleLabel = makeText({
 		Name = "Title",
 		Position = UDim2.fromOffset(titleOffset, 8),
-		Size = UDim2.new(1, -(titleOffset + 286), 0, 25),
+		Size = UDim2.new(1, -(titleOffset + 310), 0, 25),
 		Text = library.Title,
 		TextColor3 = library.Theme.Text,
 		TextSize = 16,
@@ -1553,7 +1699,7 @@ function MoreUI:CreateWindow(options)
 	local subtitleLabel = makeText({
 		Name = "Subtitle",
 		Position = UDim2.fromOffset(titleOffset, 32),
-		Size = UDim2.new(1, -(titleOffset + 286), 0, 20),
+		Size = UDim2.new(1, -(titleOffset + 310), 0, 20),
 		Text = library.Subtitle,
 		TextColor3 = library.Theme.MutedText,
 		TextSize = 11,
@@ -1577,8 +1723,8 @@ function MoreUI:CreateWindow(options)
 	local userCard = makeButton({
 		Name = "UserCard",
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -108, 0, 9),
-		Size = UDim2.fromOffset(158, 42),
+		Position = UDim2.new(1, -110, 0, 8),
+		Size = UDim2.fromOffset(182, 44),
 		Text = "",
 		BackgroundColor3 = library.Theme.Control,
 		BackgroundTransparency = library.Theme.ControlTransparency,
@@ -1597,24 +1743,34 @@ function MoreUI:CreateWindow(options)
 		TextureTransparency = 0.88,
 	})
 	new("UIGradient", {
-		Rotation = 12,
+		Rotation = 18,
 		Color = ColorSequence.new({
 			ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-			ColorSequenceKeypoint.new(0.62, library.Theme.SurfaceAlt),
-			ColorSequenceKeypoint.new(1, Color3.fromRGB(229, 242, 255)),
+			ColorSequenceKeypoint.new(0.48, library.Theme.SurfaceAlt),
+			ColorSequenceKeypoint.new(1, library.Theme.AccentSoft),
 		}),
 		Transparency = NumberSequence.new({
-			NumberSequenceKeypoint.new(0, 0.12),
-			NumberSequenceKeypoint.new(1, 0.38),
+			NumberSequenceKeypoint.new(0, 0.08),
+			NumberSequenceKeypoint.new(1, 0.34),
 		}),
 		Parent = userCard,
 	})
+	new("Frame", {
+		Name = "AccentRail",
+		Position = UDim2.fromOffset(0, 8),
+		Size = UDim2.new(0, 3, 1, -16),
+		BackgroundColor3 = library.Theme.Accent,
+		BackgroundTransparency = 0.08,
+		BorderSizePixel = 0,
+		ZIndex = 6,
+		Parent = userCard,
+	}, { corner(2) })
 	library.UserCard = userCard
 
 	local avatar = new("ImageLabel", {
 		Name = "Avatar",
-		Position = UDim2.fromOffset(7, 6),
-		Size = UDim2.fromOffset(30, 30),
+		Position = UDim2.fromOffset(10, 6),
+		Size = UDim2.fromOffset(32, 32),
 		Image = avatarImage,
 		BackgroundColor3 = library.Theme.AccentSoft,
 		BorderSizePixel = 0,
@@ -1627,7 +1783,7 @@ function MoreUI:CreateWindow(options)
 	library.Avatar = avatar
 	new("Frame", {
 		Name = "StatusDot",
-		Position = UDim2.fromOffset(31, 29),
+		Position = UDim2.fromOffset(34, 30),
 		Size = UDim2.fromOffset(8, 8),
 		BackgroundColor3 = library.Theme.Success,
 		BorderSizePixel = 0,
@@ -1637,8 +1793,8 @@ function MoreUI:CreateWindow(options)
 
 	makeText({
 		Name = "UserName",
-		Position = UDim2.fromOffset(45, 5),
-		Size = UDim2.new(1, -68, 0, 18),
+		Position = UDim2.fromOffset(52, 5),
+		Size = UDim2.new(1, -80, 0, 18),
 		Text = userName,
 		TextColor3 = library.Theme.Text,
 		TextSize = 13,
@@ -1649,8 +1805,8 @@ function MoreUI:CreateWindow(options)
 	})
 	makeText({
 		Name = "UserRole",
-		Position = UDim2.fromOffset(45, 22),
-		Size = UDim2.new(1, -68, 0, 15),
+		Position = UDim2.fromOffset(52, 23),
+		Size = UDim2.new(1, -96, 0, 15),
 		Text = userRole,
 		TextColor3 = library.Theme.MutedText,
 		TextSize = 10,
@@ -1661,7 +1817,7 @@ function MoreUI:CreateWindow(options)
 	createIcon(library, "lucide:chevron-down", {
 		Parent = userCard,
 		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.new(1, -9, 0.5, 0),
+		Position = UDim2.new(1, -10, 0.5, 0),
 		Size = UDim2.fromOffset(14, 14),
 		Color = library.Theme.MutedText,
 		ZIndex = 6,
@@ -1812,6 +1968,79 @@ function MoreUI:CreateWindow(options)
 			tab.IconImage.AnchorPoint = compact and Vector2.new(0.5, 0.5) or Vector2.new(0, 0)
 			tab.IconImage.Position = compact and UDim2.fromScale(0.5, 0.5) or UDim2.fromOffset(12, 10)
 			tab.IconImage.Size = compact and UDim2.fromOffset(20, 20) or UDim2.fromOffset(18, 18)
+			if tab.Locked then
+				tab.IconImage.ImageColor3 = self.Theme.MutedText
+			end
+		end
+		if tab.Locked and tab.Label then
+			tab.Label.TextColor3 = self.Theme.MutedText
+		end
+	end
+
+	function library:_applyDpiScale(scale)
+		scale = tonumber(scale) or 1
+		self.ActiveDpiScale = scale
+		if self.WindowDpiScale then
+			self.WindowDpiScale.Scale = scale
+		end
+		if self.ShadowDpiScale then
+			self.ShadowDpiScale.Scale = scale
+		end
+		if self.SoftShadowDpiScale then
+			self.SoftShadowDpiScale.Scale = scale
+		end
+	end
+
+	function library:_floatingOpenPosition()
+		return UDim2.fromOffset(4, 4)
+	end
+
+	function library:_floatingOpenSize()
+		return UDim2.new(1, -8, 1, -8)
+	end
+
+	function library:_floatingCollapsedPosition()
+		return UDim2.new(0, 4, 1, -42)
+	end
+
+	function library:_floatingCollapsedSize()
+		return UDim2.new(1, -8, 0, 38)
+	end
+
+	function library:_syncFloatingPage(tab, instant)
+		if not self.FloatingPlus or not tab or not tab.Holder then
+			return
+		end
+
+		local holder = tab.Holder
+		local collapsed = tab.FloatingCollapsed == true
+		local targetPosition = collapsed and self:_floatingCollapsedPosition() or self:_floatingOpenPosition()
+		local targetSize = collapsed and self:_floatingCollapsedSize() or self:_floatingOpenSize()
+
+		if tab.Page then
+			tab.Page.Visible = not collapsed
+		end
+		if tab.FloatingRestoreHint then
+			tab.FloatingRestoreHint.Visible = collapsed
+		end
+
+		if instant then
+			holder.Position = targetPosition
+			holder.Size = targetSize
+		else
+			tween(holder, Smooth, {
+				Position = targetPosition,
+				Size = targetSize,
+			})
+		end
+	end
+
+	function library:_syncFloatingPages(instant)
+		if not self.FloatingPlus then
+			return
+		end
+		for _, tab in ipairs(self.Tabs) do
+			self:_syncFloatingPage(tab, instant)
 		end
 	end
 
@@ -1837,65 +2066,69 @@ function MoreUI:CreateWindow(options)
 			mobile = viewport.X <= 760
 		end
 		self.IsMobile = mobile
+		self:_applyDpiScale(mobile and self.MobileDpiScale or self.DpiScale)
 
 		local width
 		local height
-		local topInset = options.TopInset or 64
+		local topInset = options.TopInset or (self.FloatingPlus and 74 or 64)
 		if mobile then
 			width = math.max(300, math.floor(viewport.X - 48))
 			height = math.max(360, math.floor(viewport.Y - topInset - 14))
-			height = math.min(height, options.MobileHeight or 600)
+			height = math.min(height, options.MobileHeight or (self.FloatingPlus and 520 or 600))
 			window.AnchorPoint = Vector2.new(0.5, 0)
 			self._openPosition = options.Position or UDim2.new(0.5, 0, 0, topInset)
 			self._hiddenPosition = UDim2.new(0.5, 0, 1, height + 60)
-			topbar.Size = UDim2.new(1, 0, 0, 60)
-			tabbar.Position = UDim2.fromOffset(10, 70)
-			tabbar.Size = UDim2.new(1, -20, 0, 48)
+			topbar.Size = UDim2.new(1, 0, 0, self.FloatingPlus and 54 or 60)
+			tabbar.Position = UDim2.fromOffset(10, self.FloatingPlus and 62 or 70)
+			tabbar.Size = UDim2.new(1, -20, 0, self.FloatingPlus and 44 or 48)
 			tabbar.ScrollingDirection = Enum.ScrollingDirection.X
 			tabbar.UIListLayout.FillDirection = Enum.FillDirection.Horizontal
 			setCanvasToContent(tabbar, "X")
-			pages.Position = UDim2.fromOffset(10, 128)
-			pages.Size = UDim2.new(1, -20, 1, -138)
+			pages.Position = UDim2.fromOffset(10, self.FloatingPlus and 112 or 128)
+			pages.Size = UDim2.new(1, -20, 1, self.FloatingPlus and -122 or -138)
 			userCard.Visible = false
 			titleLabel.Size = UDim2.new(1, -(titleOffset + 110), 0, 25)
 			subtitleLabel.Size = UDim2.new(1, -(titleOffset + 110), 0, 20)
 			controlRow.Position = UDim2.new(1, 0, 0, 0)
-			controlRow.Size = UDim2.fromOffset(88, 40)
-			minimize.Size = UDim2.fromOffset(44, 40)
-			close.Size = UDim2.fromOffset(44, 40)
+			controlRow.Size = UDim2.fromOffset(88, self.FloatingPlus and 34 or 40)
+			minimize.Size = UDim2.fromOffset(44, self.FloatingPlus and 34 or 40)
+			close.Size = UDim2.fromOffset(44, self.FloatingPlus and 34 or 40)
 			for _, tab in ipairs(self.Tabs) do
-				tab.Button.Size = self.SidebarCompact and UDim2.fromOffset(42, 34) or UDim2.fromOffset(120, 34)
+				tab.Button.Size = self.SidebarCompact and UDim2.fromOffset(42, self.FloatingPlus and 38 or 34)
+					or UDim2.fromOffset(120, 34)
 				self:_syncTabVisual(tab)
 			end
 		else
-			local requested = options.Size or UDim2.fromOffset(640, 440)
+			local requested = options.Size
+				or (self.FloatingPlus and UDim2.fromOffset(760, 520) or UDim2.fromOffset(640, 440))
 			width = math.min(requested.X.Offset, math.floor(viewport.X - 80))
 			height = math.min(requested.Y.Offset, math.floor(viewport.Y - topInset - 32))
-			width = math.max(width, 560)
-			height = math.max(height, 390)
+			width = math.max(width, self.FloatingPlus and 620 or 560)
+			height = math.max(height, self.FloatingPlus and 420 or 390)
 			window.AnchorPoint = Vector2.new(0.5, 0)
 			self._openPosition = options.Position or UDim2.new(0.5, 0, 0, topInset)
 			self._hiddenPosition = UDim2.new(0.5, 0, 1, height + 80)
-			topbar.Size = UDim2.new(1, 0, 0, 60)
+			topbar.Size = UDim2.new(1, 0, 0, self.FloatingPlus and 54 or 60)
 			local sidebarWidth = self.SidebarCompact and 60 or 164
 			local pageLeft = sidebarWidth + 24
-			tabbar.Position = UDim2.fromOffset(12, 72)
-			tabbar.Size = UDim2.new(0, sidebarWidth, 1, -84)
+			tabbar.Position = UDim2.fromOffset(12, self.FloatingPlus and 64 or 72)
+			tabbar.Size = UDim2.new(0, sidebarWidth, 1, self.FloatingPlus and -76 or -84)
 			tabbar.ScrollingDirection = Enum.ScrollingDirection.Y
 			tabbar.UIListLayout.FillDirection = Enum.FillDirection.Vertical
 			setCanvasToContent(tabbar, "Y")
-			pages.Position = UDim2.fromOffset(pageLeft, 72)
-			pages.Size = UDim2.new(1, -(pageLeft + 12), 1, -84)
+			pages.Position = UDim2.fromOffset(pageLeft, self.FloatingPlus and 64 or 72)
+			pages.Size = UDim2.new(1, -(pageLeft + 12), 1, self.FloatingPlus and -76 or -84)
 			userCard.Visible = true
-			titleLabel.Size = UDim2.new(1, -(titleOffset + 286), 0, 25)
-			subtitleLabel.Size = UDim2.new(1, -(titleOffset + 286), 0, 20)
-			userCard.Position = UDim2.new(1, -108, 0, 9)
+			titleLabel.Size = UDim2.new(1, -(titleOffset + 310), 0, 25)
+			subtitleLabel.Size = UDim2.new(1, -(titleOffset + 310), 0, 20)
+			userCard.Position = UDim2.new(1, -110, 0, self.FloatingPlus and 7 or 8)
+			userCard.Size = UDim2.fromOffset(self.FloatingPlus and 168 or 182, self.FloatingPlus and 40 or 44)
 			controlRow.Position = UDim2.new(1, 0, 0, 0)
-			controlRow.Size = UDim2.fromOffset(92, 38)
-			minimize.Size = UDim2.fromOffset(46, 38)
-			close.Size = UDim2.fromOffset(46, 38)
+			controlRow.Size = UDim2.fromOffset(92, self.FloatingPlus and 34 or 38)
+			minimize.Size = UDim2.fromOffset(46, self.FloatingPlus and 34 or 38)
+			close.Size = UDim2.fromOffset(46, self.FloatingPlus and 34 or 38)
 			for _, tab in ipairs(self.Tabs) do
-				tab.Button.Size = UDim2.new(1, 0, 0, self.SidebarCompact and 42 or 38)
+				tab.Button.Size = UDim2.new(1, 0, 0, self.SidebarCompact and (self.FloatingPlus and 44 or 42) or 38)
 				self:_syncTabVisual(tab)
 			end
 		end
@@ -1903,6 +2136,7 @@ function MoreUI:CreateWindow(options)
 		window.Size = UDim2.fromOffset(width, height)
 		window.Position = self.Open and self._openPosition or self._hiddenPosition
 		updateShadow()
+		self:_syncFloatingPages(true)
 		if instant then
 			return
 		end
@@ -2005,6 +2239,10 @@ function MoreUI:CreateWindow(options)
 	end
 
 	openButton.MouseButton1Click:Connect(function()
+		if openButton:GetAttribute("MoreUIDragged") then
+			openButton:SetAttribute("MoreUIDragged", false)
+			return
+		end
 		library:Toggle()
 	end)
 	userCard.MouseButton1Click:Connect(function()
@@ -3076,7 +3314,7 @@ function MoreUI:ShowUserTabs(options)
 		Name = "UserTabsPanel",
 		AnchorPoint = self.IsMobile and Vector2.new(0.5, 0) or Vector2.new(1, 0),
 		Position = self.IsMobile and UDim2.new(0.5, 0, 0, 64) or UDim2.new(1, -104, 0, 58),
-		Size = self.IsMobile and UDim2.new(1, -40, 0, 224) or UDim2.fromOffset(292, 224),
+		Size = self.IsMobile and UDim2.new(1, -36, 0, 266) or UDim2.fromOffset(320, 266),
 		BackgroundColor3 = theme.Surface,
 		BorderSizePixel = 0,
 		ClipsDescendants = true,
@@ -3088,44 +3326,69 @@ function MoreUI:ShowUserTabs(options)
 		Radius = 18,
 		TextureTransparency = 0.88,
 	})
+	local headerGlass = new("Frame", {
+		Name = "HeaderGlass",
+		Position = UDim2.fromOffset(10, 10),
+		Size = UDim2.new(1, -20, 0, 66),
+		BackgroundColor3 = theme.AccentSoft,
+		BackgroundTransparency = 0.16,
+		BorderSizePixel = 0,
+		ZIndex = 47,
+		Parent = panel,
+	}, {
+		corner(16),
+		stroke(Color3.fromRGB(255, 255, 255), 0.56, 1),
+		new("UIGradient", {
+			Rotation = 15,
+			Color = ColorSequence.new({
+				ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+				ColorSequenceKeypoint.new(0.58, Color3.fromRGB(230, 246, 255)),
+				ColorSequenceKeypoint.new(1, theme.AccentSoft),
+			}),
+			Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0.16),
+				NumberSequenceKeypoint.new(1, 0.4),
+			}),
+		}),
+	})
 	local panelScale = new("UIScale", { Scale = 0.96, Parent = panel })
 	tween(panelScale, Smooth, { Scale = 1 })
 
 	new("ImageLabel", {
 		Name = "Avatar",
-		Position = UDim2.fromOffset(16, 14),
-		Size = UDim2.fromOffset(42, 42),
+		Position = UDim2.fromOffset(22, 17),
+		Size = UDim2.fromOffset(50, 50),
 		Image = avatarImage,
 		BackgroundColor3 = theme.AccentSoft,
 		BorderSizePixel = 0,
 		ZIndex = 47,
-		Parent = panel,
+		Parent = headerGlass,
 	}, { corner(12), stroke(theme.Accent, 0.08, 2) })
 	makeText({
-		Position = UDim2.fromOffset(70, 13),
-		Size = UDim2.new(1, -118, 0, 24),
+		Position = UDim2.fromOffset(78, 10),
+		Size = UDim2.new(1, -126, 0, 24),
 		Text = userName,
 		TextColor3 = theme.Text,
 		TextSize = 15,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		FontFace = Font.new("rbxasset://fonts/families/BuilderSans.json", Enum.FontWeight.Bold),
 		ZIndex = 47,
-		Parent = panel,
+		Parent = headerGlass,
 	})
 	makeText({
-		Position = UDim2.fromOffset(70, 36),
-		Size = UDim2.new(1, -118, 0, 18),
+		Position = UDim2.fromOffset(78, 34),
+		Size = UDim2.new(1, -126, 0, 18),
 		Text = userRole,
 		TextColor3 = theme.MutedText,
 		TextSize = 11,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		ZIndex = 47,
-		Parent = panel,
+		Parent = headerGlass,
 	})
 
 	local closeButton = makeButton({
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -12, 0, 12),
+		Position = UDim2.new(1, -16, 0, 18),
 		Size = UDim2.fromOffset(30, 30),
 		Text = "",
 		BackgroundColor3 = theme.Control,
@@ -3144,7 +3407,7 @@ function MoreUI:ShowUserTabs(options)
 	addButtonMotion(closeButton, theme.Control, theme.SurfaceAlt)
 
 	local tabStrip = new("Frame", {
-		Position = UDim2.fromOffset(14, 70),
+		Position = UDim2.fromOffset(14, 88),
 		Size = UDim2.new(1, -28, 0, 38),
 		BackgroundColor3 = theme.Control,
 		BackgroundTransparency = theme.ControlTransparency,
@@ -3157,8 +3420,8 @@ function MoreUI:ShowUserTabs(options)
 	})
 
 	local pages = new("Frame", {
-		Position = UDim2.fromOffset(14, 118),
-		Size = UDim2.new(1, -28, 1, -132),
+		Position = UDim2.fromOffset(14, 136),
+		Size = UDim2.new(1, -28, 1, -150),
 		BackgroundTransparency = 1,
 		ZIndex = 47,
 		Parent = panel,
@@ -3281,7 +3544,7 @@ end
 function MoreUI:ShowKeybindMenu(options)
 	options = options or {}
 	local theme = self.Theme or Theme
-	local parent = self.Window or self.ScreenGui
+	local parent = self.ScreenGui or self.Window
 	if not parent then
 		return nil
 	end
@@ -3303,19 +3566,20 @@ function MoreUI:ShowKeybindMenu(options)
 		Name = "KeybindMenuOverlay",
 		Size = UDim2.fromScale(1, 1),
 		BackgroundColor3 = Color3.fromRGB(8, 10, 14),
-		BackgroundTransparency = 0.88,
+		BackgroundTransparency = 0.78,
 		BorderSizePixel = 0,
-		ZIndex = 58,
+		ZIndex = 120,
 		Parent = parent,
 	})
 	local card = new("Frame", {
 		Name = "KeybindMenu",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(330, 232),
+		Size = self.IsMobile and UDim2.new(1, -34, 0, 286) or UDim2.fromOffset(360, 274),
 		BackgroundColor3 = theme.Surface,
 		BorderSizePixel = 0,
-		ZIndex = 59,
+		ClipsDescendants = true,
+		ZIndex = 121,
 		Parent = overlay,
 	}, {
 		corner(18),
@@ -3337,36 +3601,66 @@ function MoreUI:ShowKeybindMenu(options)
 		TextSize = 17,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		FontFace = Font.new("rbxasset://fonts/families/BuilderSans.json", Enum.FontWeight.Bold),
-		ZIndex = 60,
+		ZIndex = 122,
+		Parent = card,
+	})
+	local currentLabel = typeof(options.Current) == "EnumItem" and options.Current.Name
+		or tostring(options.Current or "None")
+	makeText({
+		Position = UDim2.fromOffset(18, 38),
+		Size = UDim2.new(1, -56, 0, 20),
+		Text = "Current: " .. currentLabel,
+		TextColor3 = theme.MutedText,
+		TextSize = 12,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		ZIndex = 122,
 		Parent = card,
 	})
 	local close = makeButton({
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, -12, 0, 12),
 		Size = UDim2.fromOffset(30, 30),
-		Text = "×",
+		Text = "",
 		TextColor3 = theme.Text,
 		TextSize = 18,
 		BackgroundColor3 = theme.Control,
 		BackgroundTransparency = theme.ControlTransparency,
 		BorderSizePixel = 0,
-		ZIndex = 60,
+		ZIndex = 122,
 		Parent = card,
 	}, { corner(9), stroke(theme.Stroke, 0.3, 1) })
+	createIcon(self, "lucide:x", {
+		Parent = close,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(14, 14),
+		Color = theme.Text,
+		ZIndex = 123,
+	})
 
-	local grid = new("Frame", {
-		Position = UDim2.fromOffset(18, 54),
-		Size = UDim2.new(1, -36, 1, -72),
+	local grid = new("ScrollingFrame", {
+		Position = UDim2.fromOffset(18, 68),
+		Size = UDim2.new(1, -36, 1, -86),
 		BackgroundTransparency = 1,
-		ZIndex = 60,
+		BorderSizePixel = 0,
+		CanvasSize = UDim2.fromOffset(0, 0),
+		ScrollBarThickness = 2,
+		ScrollBarImageColor3 = theme.StrokeStrong,
+		ZIndex = 122,
 		Parent = card,
 	}, {
 		new("UIGridLayout", {
-			CellSize = UDim2.fromOffset(88, 38),
+			CellSize = UDim2.fromOffset(96, 40),
 			CellPadding = UDim2.fromOffset(9, 9),
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}),
 	})
+	local gridLayout = grid:FindFirstChildOfClass("UIGridLayout")
+	local function updateGridCanvas()
+		grid.CanvasSize = UDim2.fromOffset(0, gridLayout.AbsoluteContentSize.Y + 10)
+	end
+	updateGridCanvas()
+	gridLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateGridCanvas)
 
 	local menu = { Instance = overlay, Card = card }
 	function menu:Close()
@@ -3393,7 +3687,7 @@ function MoreUI:ShowKeybindMenu(options)
 			BackgroundColor3 = key == options.Current and theme.AccentSoft or theme.Control,
 			BackgroundTransparency = key == options.Current and 0.08 or theme.ControlTransparency,
 			BorderSizePixel = 0,
-			ZIndex = 61,
+			ZIndex = 123,
 			Parent = grid,
 		}, { corner(10), stroke(key == options.Current and theme.Accent or theme.Stroke, 0.24, 1) })
 		applyControlTexture(self, button, {
@@ -3410,7 +3704,9 @@ function MoreUI:ShowKeybindMenu(options)
 end
 
 function MoreUI:CreateTab(name, icon)
+	local tabOptions = {}
 	if typeof(name) == "table" then
+		tabOptions = name
 		icon = name.Icon
 		name = name.Name or name.Title or "Tab"
 	end
@@ -3422,6 +3718,8 @@ function MoreUI:CreateTab(name, icon)
 		Library = self,
 		Elements = {},
 		Selected = false,
+		Locked = isLockedOption(tabOptions),
+		LockOptions = tabOptions,
 	}
 
 	local button = makeButton({
@@ -3466,12 +3764,32 @@ function MoreUI:CreateTab(name, icon)
 	label.Visible = not self.SidebarCompact
 	tab.IconImage = iconImage
 	tab.Label = label
+	if tab.Locked then
+		tween(button, Fast, {
+			BackgroundColor3 = theme.SurfaceAlt,
+			BackgroundTransparency = 0.56,
+		})
+		if iconImage then
+			iconImage.ImageColor3 = theme.MutedText
+		end
+		label.TextColor3 = theme.MutedText
+		tab.LockOverlay = applyLockedOverlay(
+			self,
+			button,
+			mergeMap(tabOptions, {
+				LockedLabel = not self.SidebarCompact,
+				LockedText = tabOptions.LockedText or "Locked",
+				Radius = theme.Radius,
+			})
+		)
+	end
 
 	local pageHolder = new("Frame", {
 		Name = name .. "PageHolder",
-		Position = UDim2.fromScale(0, 0),
-		Size = UDim2.fromScale(1, 1),
-		BackgroundTransparency = 1,
+		Position = self.FloatingPlus and self:_floatingOpenPosition() or UDim2.fromScale(0, 0),
+		Size = self.FloatingPlus and self:_floatingOpenSize() or UDim2.fromScale(1, 1),
+		BackgroundColor3 = theme.Surface,
+		BackgroundTransparency = self.FloatingPlus and 0.08 or 1,
 		ClipsDescendants = true,
 		Visible = false,
 		ZIndex = 3,
@@ -3479,10 +3797,138 @@ function MoreUI:CreateTab(name, icon)
 	})
 	getOrCreateScale(pageHolder, "PageScale")
 	tab.Holder = pageHolder
+	if self.FloatingPlus then
+		applyGlass(pageHolder, theme, theme.Radius + 2, "soft", true)
+		applyControlTexture(self, pageHolder, {
+			Radius = theme.Radius + 2,
+			TextureTransparency = 0.9,
+		})
+		applyWindowAssetTexture(self, pageHolder, "window11-background", {
+			Radius = theme.Radius + 2,
+			Transparency = 0.82,
+		})
+
+		local floatingTopbar = new("Frame", {
+			Name = "FloatingPageTopbar",
+			Size = UDim2.new(1, 0, 0, 36),
+			BackgroundColor3 = theme.Surface,
+			BackgroundTransparency = 0.14,
+			BorderSizePixel = 0,
+			ZIndex = 8,
+			Parent = pageHolder,
+		}, {
+			corner(theme.Radius + 2),
+			stroke(theme.Stroke, 0.34, 1),
+		})
+		applyControlTexture(self, floatingTopbar, {
+			Radius = theme.Radius + 2,
+			TextureTransparency = 0.92,
+		})
+		createIcon(self, icon or name, {
+			Parent = floatingTopbar,
+			Position = UDim2.fromOffset(12, 9),
+			Size = UDim2.fromOffset(17, 17),
+			Color = theme.Accent,
+			ZIndex = 9,
+		})
+		makeText({
+			Name = "FloatingTitle",
+			Position = UDim2.fromOffset(38, 0),
+			Size = UDim2.new(1, -126, 1, 0),
+			Text = name,
+			TextColor3 = theme.Text,
+			TextSize = 13,
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			FontFace = Font.new("rbxasset://fonts/families/BuilderSans.json", Enum.FontWeight.Bold),
+			ZIndex = 9,
+			Parent = floatingTopbar,
+		})
+		local restoreHint = makeText({
+			Name = "RestoreHint",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.new(0, 190, 1, 0),
+			Text = "Tap app tab to restore",
+			TextColor3 = theme.MutedText,
+			TextSize = 11,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			Visible = false,
+			ZIndex = 9,
+			Parent = floatingTopbar,
+		})
+		tab.FloatingTopbar = floatingTopbar
+		tab.FloatingRestoreHint = restoreHint
+
+		local pageMinimize = makeButton({
+			Name = "PageMinimize",
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, -72, 0, 0),
+			Size = UDim2.fromOffset(36, 34),
+			Text = "",
+			BackgroundColor3 = theme.SurfaceAlt,
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			ZIndex = 9,
+			Parent = floatingTopbar,
+		})
+		local pageMinimizeIcon =
+			createIcon(self, defaultWindow11Option(self._options, "MinimizeIcon", "lucide:minus"), {
+				Parent = pageMinimize,
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.fromScale(0.5, 0.5),
+				Size = UDim2.fromOffset(13, 13),
+				Color = theme.Text,
+				ZIndex = 10,
+			})
+		addTitlebarButtonMotion(
+			pageMinimize,
+			pageMinimizeIcon,
+			theme.SurfaceAlt,
+			theme.Stroke,
+			theme.StrokeStrong,
+			theme.Text,
+			theme.Text
+		)
+
+		local pageClose = makeButton({
+			Name = "PageClose",
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, -36, 0, 0),
+			Size = UDim2.fromOffset(36, 34),
+			Text = "",
+			BackgroundColor3 = theme.SurfaceAlt,
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			ZIndex = 9,
+			Parent = floatingTopbar,
+		})
+		local pageCloseIcon = createIcon(self, defaultWindow11Option(self._options, "CloseIcon", "lucide:x"), {
+			Parent = pageClose,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromOffset(13, 13),
+			Color = theme.Text,
+			ZIndex = 10,
+		})
+		addTitlebarButtonMotion(
+			pageClose,
+			pageCloseIcon,
+			theme.SurfaceAlt,
+			Color3.fromRGB(232, 70, 58),
+			Color3.fromRGB(190, 42, 34),
+			theme.Text,
+			Color3.fromRGB(255, 255, 255)
+		)
+
+		tab.FloatingMinimize = pageMinimize
+		tab.FloatingClose = pageClose
+	end
 
 	local page = new("ScrollingFrame", {
 		Name = name .. "Page",
-		Size = UDim2.fromScale(1, 1),
+		Position = self.FloatingPlus and UDim2.fromOffset(8, 44) or UDim2.fromScale(0, 0),
+		Size = self.FloatingPlus and UDim2.new(1, -16, 1, -52) or UDim2.fromScale(1, 1),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		ScrollBarImageColor3 = theme.StrokeStrong,
@@ -3496,9 +3942,101 @@ function MoreUI:CreateTab(name, icon)
 	})
 	tab.Page = page
 	setCanvasToContent(page, "Y")
+	if self.FloatingPlus then
+		local draggingPage = false
+		local dragInput
+		local startInput
+		local startPosition
+
+		function tab:SetFloatingCollapsed(collapsed, instant)
+			self.FloatingCollapsed = collapsed == true
+			if self.Holder then
+				self.Holder.Visible = true
+				self.Library:_syncFloatingPage(self, instant)
+			end
+		end
+
+		local function beginFloatingDrag(input)
+			if
+				input.UserInputType ~= Enum.UserInputType.MouseButton1
+				and input.UserInputType ~= Enum.UserInputType.Touch
+			then
+				return
+			end
+			draggingPage = true
+			dragInput = input
+			startInput = input.Position
+			startPosition = pageHolder.Position
+		end
+
+		tab.FloatingTopbar.InputBegan:Connect(beginFloatingDrag)
+		pageHolder.InputBegan:Connect(function(input)
+			if tab.FloatingCollapsed then
+				beginFloatingDrag(input)
+			end
+		end)
+		table.insert(
+			self._connections,
+			UserInputService.InputChanged:Connect(function(input)
+				if not draggingPage or input ~= dragInput then
+					return
+				end
+				local delta = input.Position - startInput
+				if delta.Y < -12 and tab.FloatingCollapsed then
+					tab:SetFloatingCollapsed(false)
+					draggingPage = false
+					dragInput = nil
+					return
+				end
+				local maxOffset = math.max(4, self.Pages.AbsoluteSize.Y - 38)
+				local nextOffset = math.clamp(startPosition.Y.Offset + delta.Y, 4, maxOffset)
+				pageHolder.Position = UDim2.new(startPosition.X.Scale, startPosition.X.Offset, 0, nextOffset)
+			end)
+		)
+		table.insert(
+			self._connections,
+			UserInputService.InputEnded:Connect(function(input)
+				if not draggingPage then
+					return
+				end
+				if
+					input.UserInputType ~= Enum.UserInputType.MouseButton1
+					and input.UserInputType ~= Enum.UserInputType.Touch
+				then
+					return
+				end
+				if input ~= dragInput and dragInput ~= nil then
+					return
+				end
+				local deltaY = startInput and (input.Position.Y - startInput.Y) or 0
+				if tab.FloatingCollapsed then
+					tab:SetFloatingCollapsed(false)
+				elseif deltaY > 58 or pageHolder.Position.Y.Offset > math.max(44, self.Pages.AbsoluteSize.Y * 0.38) then
+					tab:SetFloatingCollapsed(true)
+				else
+					tab:SetFloatingCollapsed(false)
+				end
+				draggingPage = false
+				dragInput = nil
+			end)
+		)
+		tab.FloatingMinimize.MouseButton1Click:Connect(function()
+			tab:SetFloatingCollapsed(not tab.FloatingCollapsed)
+		end)
+		tab.FloatingClose.MouseButton1Click:Connect(function()
+			tab:SetFloatingCollapsed(true)
+		end)
+	end
 
 	function tab:Select()
+		if self.Locked then
+			notifyLocked(self.Library, self.LockOptions)
+			return
+		end
 		if self.Selected then
+			if self.Library.FloatingPlus and self.FloatingCollapsed and self.SetFloatingCollapsed then
+				self:SetFloatingCollapsed(false)
+			end
 			return
 		end
 
@@ -3511,15 +4049,25 @@ function MoreUI:CreateTab(name, icon)
 			if otherHolder.Visible and other ~= self then
 				local oldScale = getOrCreateScale(otherHolder, "PageScale")
 				otherHolder.ZIndex = 3
-				tween(otherHolder, Smooth, {
-					Position = UDim2.fromOffset(0, -18),
-				})
+				if self.Library.FloatingPlus then
+					tween(otherHolder, Smooth, {
+						Position = UDim2.fromOffset(4, -14),
+					})
+				else
+					tween(otherHolder, Smooth, {
+						Position = UDim2.fromOffset(0, -18),
+					})
+				end
 				tween(other.Page, Smooth, { ScrollBarImageTransparency = 1 })
 				tween(oldScale, Smooth, { Scale = 0.982 })
 				task.delay(0.22, function()
 					if otherHolder and otherHolder.Parent and not other.Selected then
 						otherHolder.Visible = false
-						otherHolder.Position = UDim2.fromScale(0, 0)
+						if self.Library.FloatingPlus then
+							self.Library:_syncFloatingPage(other, true)
+						else
+							otherHolder.Position = UDim2.fromScale(0, 0)
+						end
 						other.Page.ScrollBarImageTransparency = 0
 						local resetScale = otherHolder:FindFirstChild("PageScale")
 						if resetScale then
@@ -3544,7 +4092,14 @@ function MoreUI:CreateTab(name, icon)
 		self.Selected = true
 		local holder = self.Holder or self.Page
 		holder.Visible = true
-		holder.Position = UDim2.fromOffset(0, 22)
+		if self.Library.FloatingPlus then
+			if self.SetFloatingCollapsed then
+				self:SetFloatingCollapsed(false, true)
+			end
+			holder.Position = UDim2.fromOffset(4, 24)
+		else
+			holder.Position = UDim2.fromOffset(0, 22)
+		end
 		holder.ZIndex = 4
 		self.Page.CanvasPosition = Vector2.new(0, 0)
 		self.Page.ScrollBarImageTransparency = 1
@@ -3557,7 +4112,8 @@ function MoreUI:CreateTab(name, icon)
 		tween(label, Fast, { TextColor3 = theme.AccentText })
 		self.Library.SelectedTab = self
 		tween(holder, Smooth, {
-			Position = UDim2.fromScale(0, 0),
+			Position = self.Library.FloatingPlus and self.Library:_floatingOpenPosition() or UDim2.fromScale(0, 0),
+			Size = self.Library.FloatingPlus and self.Library:_floatingOpenSize() or holder.Size,
 		})
 		tween(self.Page, Smooth, { ScrollBarImageTransparency = 0 })
 		tween(pageScale, Smooth, { Scale = 1 })
@@ -3592,7 +4148,35 @@ function MoreUI:CreateTab(name, icon)
 		setCanvasToContent(self.Tabbar, "Y")
 	end
 	self:_syncTabVisual(tab)
-	if not self.SelectedTab then
+	function tab:SetLocked(locked, reason)
+		self.Locked = locked == true
+		self.LockOptions = mergeMap(self.LockOptions or {}, {
+			Locked = self.Locked,
+			LockedReason = reason or lockedReason(self.LockOptions),
+		})
+		if self.LockOverlay then
+			self.LockOverlay:Destroy()
+			self.LockOverlay = nil
+		end
+		if self.Locked then
+			self.LockOverlay = applyLockedOverlay(
+				self.Library,
+				self.Button,
+				mergeMap(self.LockOptions, {
+					LockedLabel = not self.Library.SidebarCompact,
+					Radius = theme.Radius,
+				})
+			)
+			if self.Selected then
+				self.Selected = false
+				self.Holder.Visible = false
+				self.Library.SelectedTab = nil
+			end
+		end
+		self.Library:_syncTabVisual(self)
+	end
+
+	if not self.SelectedTab and not tab.Locked then
 		tab:Select()
 	end
 
@@ -3692,6 +4276,9 @@ function MoreUI:_rowBase(parent, height, options)
 		ControlTexture = options.ControlTexture,
 		TextureTransparency = options.TextureTransparency,
 	})
+	if isLockedOption(options) then
+		applyLockedOverlay(self, row, options)
+	end
 	return row
 end
 
@@ -3896,8 +4483,22 @@ function MoreUI:_attachElementMethods(container, content)
 		})
 		addButtonMotion(button, options.Color or theme.Accent, options.HoverColor or theme.AccentHover)
 		button.MouseButton1Click:Connect(function()
+			if isLockedOption(options) then
+				notifyLocked(library, options)
+				return
+			end
 			safeCall(options.Callback)
 		end)
+		if isLockedOption(options) then
+			applyLockedOverlay(
+				library,
+				button,
+				mergeMap(options, {
+					Radius = 11,
+					LockedLabel = options.LockedLabel ~= false,
+				})
+			)
+		end
 		return { Instance = row, Button = button }
 	end
 
@@ -4077,9 +4678,23 @@ function MoreUI:_attachElementMethods(container, content)
 				tween(hover, Fast, { BackgroundTransparency = itemColor and 0.74 or 0.58 })
 			end)
 			button.MouseButton1Click:Connect(function()
+				if isLockedOption(item) then
+					notifyLocked(library, item)
+					return
+				end
 				tween(hover, Fast, { BackgroundTransparency = 1 })
 				safeCall(item.Callback or options.Callback, item, index, rawItem)
 			end)
+			if isLockedOption(item) then
+				applyLockedOverlay(
+					library,
+					button,
+					mergeMap(item, {
+						Radius = 0,
+						LockedLabel = false,
+					})
+				)
+			end
 			table.insert(created.Buttons, button)
 		end
 		return created
@@ -5096,9 +5711,7 @@ function MoreUI:_attachElementMethods(container, content)
 			safeCall(options.Changed, value)
 		end
 		button.MouseButton1Click:Connect(function()
-			if
-				options.MobileMenu ~= false and (library.IsMobile or UserInputService.TouchEnabled or options.ForceMenu)
-			then
+			if options.Menu ~= false and options.MobileMenu ~= false then
 				library:ShowKeybindMenu({
 					Title = options.Title or "Keybind",
 					Current = value,

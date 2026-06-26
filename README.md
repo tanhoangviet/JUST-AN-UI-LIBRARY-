@@ -35,7 +35,10 @@ local window = MoreUI:CreateWindow({
 	Title = "My Hub",
 	Subtitle = "Liquid Glass",
 	ToggleKey = Enum.KeyCode.RightShift,
-	TopInset = 72,
+	TopInset = 74,
+	FloatingPlus = true,
+	DpiScale = 0.5,
+	MobileDpiScale = 0.72,
 	BackgroundBlurSize = 10,
 	OpenButtonPosition = UDim2.fromOffset(92, 86),
 	SidebarCompact = true,
@@ -74,6 +77,9 @@ section:AddToggle({
 - Mobile responsive bottom-sheet layout.
 - Opens from below with animation.
 - Smaller default window and lighter corner radius.
+- `FloatingPlus = true` turns tabs into a compact app dock. Each tab opens its page inside a floating page window with its own topbar.
+- In Floating+ mode, drag the page topbar downward to collapse that page into a small bottom strip; tap the app tab again to restore it.
+- `DpiScale` reduces the desktop UI scale. The demo uses `0.5`; `MobileDpiScale` defaults higher so touch targets remain usable.
 - `TopInset` keeps the UI below the Roblox topbar. Use `64-82` on mobile landscape; increase only if it touches the Roblox top menu.
 - Top-left open button defaults below the Roblox menu area and uses a Windows-style icon.
 - The floating open button now uses `open-button-texture` by default for a linked-button style glass surface.
